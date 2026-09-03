@@ -135,11 +135,11 @@ function updateNavLabels() {
   const dbLabel = document.getElementById('nav-label-fooddb');
   const setLabel = document.getElementById('nav-label-settings');
 
-  if (dashLabel) dashLabel.textContent = t('summary');
+  if (dashLabel) dashLabel.textContent = t('dashboard_nav');
   if (analyticsLabel) analyticsLabel.textContent = t('analytics_nav');
-  if (logLabel) logLabel.textContent = t('log_meal');
-  if (dbLabel) dbLabel.textContent = t('food_database');
-  if (setLabel) setLabel.textContent = t('settings');
+  if (logLabel) logLabel.textContent = t('log_nav');
+  if (dbLabel) dbLabel.textContent = t('fooddb_nav');
+  if (setLabel) setLabel.textContent = t('settings_nav');
 }
 
 window.addEventListener('DOMContentLoaded', init);

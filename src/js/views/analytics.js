@@ -119,31 +119,43 @@ async function loadAndDisplayChart(container) {
   const lang = getLanguage();
   const locale = lang === 'uk' ? 'uk-UA' : 'en-US';
 
-  // Render chart bars
-  chartContainer.innerHTML = days.map(d => {
-    const dateStr = toLocalDateString(d);
-    const val = daySums[dateStr] || 0;
-    const roundedVal = Math.round(val);
-    const isToday = dateStr === endDateStr;
+  // Render chart: bars track with unified baseline + fixed 2-line labels row
+  chartContainer.innerHTML = `
+    <div class="chart-bars-area">
+      ${days.map(d => {
+        const dateStr = toLocalDateString(d);
+        const val = daySums[dateStr] || 0;
+        const roundedVal = Math.round(val);
+        const isToday = dateStr === endDateStr;
 
-    // Height percentage (minimum 4% so empty bar is still slightly visible line)
-    const heightPct = Math.max(Math.round((val / maxVal) * 100), val > 0 ? 6 : 2);
+        const heightPct = Math.max(Math.round((val / maxVal) * 100), val > 0 ? 6 : 2);
+        const isOverTarget = targetVal > 0 && val > targetVal;
+        const barBg = isOverTarget ? 'var(--accent-danger, #ef4444)' : activeMetric.color;
 
-    // Weekday abbreviation: Пн, Вт... / Mon, Tue...
-    const weekday = d.toLocaleDateString(locale, { weekday: 'short' });
-    const dayNum = d.getDate();
+        return `
+          <div class="chart-col ${isToday ? 'today' : ''}" title="${dateStr}: ${roundedVal} ${activeMetric.unit}">
+            <span class="chart-bar-val">${val > 0 ? roundedVal : '0'}</span>
+            <div class="chart-bar" style="height: ${heightPct}%; background-color: ${barBg};"></div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="chart-labels-area">
+      ${days.map(d => {
+        const dateStr = toLocalDateString(d);
+        const isToday = dateStr === endDateStr;
+        const weekday = d.toLocaleDateString(locale, { weekday: 'short' });
+        const dayNum = d.getDate();
 
-    const isOverTarget = targetVal > 0 && val > targetVal;
-    const barBg = isOverTarget ? 'var(--accent-danger, #ef4444)' : activeMetric.color;
-
-    return `
-      <div class="chart-bar-col ${isToday ? 'today' : ''}" title="${dateStr}: ${roundedVal} ${activeMetric.unit}">
-        <span class="chart-bar-val">${val > 0 ? roundedVal : '0'}</span>
-        <div class="chart-bar" style="height: ${heightPct}%; background-color: ${barBg};"></div>
-        <span class="chart-bar-label">${weekday} ${dayNum}</span>
-      </div>
-    `;
-  }).join('');
+        return `
+          <div class="chart-label-slot ${isToday ? 'today' : ''}">
+            <span class="chart-weekday">${weekday}</span>
+            <span class="chart-daynum">${dayNum}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 
   // Calculate statistics (Average, Highest, Lowest)
   const sum = values.reduce((a, b) => a + b, 0);
@@ -152,17 +164,17 @@ async function loadAndDisplayChart(container) {
   const lowest = Math.round(Math.min(...values));
 
   statsGrid.innerHTML = `
-    <div class="stat-box" style="text-align:center; padding:12px 8px;">
-      <div class="stat-label" style="font-size:0.75rem;">${t('avg_daily')}</div>
-      <div class="stat-val" style="font-size:1.15rem; color:${activeMetric.color};">${avg} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('avg_daily')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:${activeMetric.color};">${avg} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
     </div>
-    <div class="stat-box" style="text-align:center; padding:12px 8px;">
-      <div class="stat-label" style="font-size:0.75rem;">${t('highest_day')}</div>
-      <div class="stat-val" style="font-size:1.15rem; color:var(--text-primary);">${highest} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('highest_day')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--text-primary);">${highest} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
     </div>
-    <div class="stat-box" style="text-align:center; padding:12px 8px;">
-      <div class="stat-label" style="font-size:0.75rem;">${t('lowest_day')}</div>
-      <div class="stat-val" style="font-size:1.15rem; color:var(--text-primary);">${lowest} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('lowest_day')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--text-primary);">${lowest} <span style="font-size:0.75rem;">${activeMetric.unit}</span></div>
     </div>
   `;
 }
