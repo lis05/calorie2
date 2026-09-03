@@ -1,0 +1,18 @@
+{
+  "name": "Calorie2",
+  "short_name": "Calorie",
+  "description": "Simple offline calorie and nutrient tracker",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#141722",
+  "theme_color": "#141722",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
