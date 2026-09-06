@@ -96,10 +96,11 @@ input, button, select, textarea {
 
 /* Main Content Area */
 .view-container {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 14px 14px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 24px);
+  padding: 14px 14px 20px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
@@ -442,19 +443,14 @@ input, button, select, textarea {
 
 /* Bottom Navigation Bar */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 0 0 auto;
   width: 100%;
-  max-width: 540px;
   height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
   background: var(--surface-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
   border-top: 1px solid var(--border-subtle);
-  z-index: 30;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow: hidden;
 }
@@ -503,12 +499,12 @@ input, button, select, textarea {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -528,11 +524,13 @@ input, button, select, textarea {
   border-top: 1px solid var(--border-card);
   border-left: 1px solid var(--border-card);
   border-right: 1px solid var(--border-card);
-  padding: 22px 20px calc(24px + env(safe-area-inset-bottom));
+  padding: 20px 18px max(24px, env(safe-area-inset-bottom, 24px));
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  max-height: 90vh;
+  max-height: 85vh;
+  max-height: 85dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-overlay.open .modal-card {

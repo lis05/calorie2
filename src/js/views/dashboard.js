@@ -285,6 +285,9 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   }
 
   async function openEditModal(meal) {
+    if (editModal && editModal.parentElement !== document.getElementById('app')) {
+      document.getElementById('app').appendChild(editModal);
+    }
     activeEditingMeal = meal;
     if (meal.food_id) {
       activeBaseFood = await getFoodById(meal.food_id);

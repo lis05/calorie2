@@ -105,6 +105,9 @@ export async function renderFoodDb(container) {
   const foodSugInput = container.querySelector('#food-sug-input');
 
   function openModal(food = null) {
+    if (modal && modal.parentElement !== document.getElementById('app')) {
+      document.getElementById('app').appendChild(modal);
+    }
     if (food) {
       modalTitle.textContent = `${t('edit')}: ${getFoodDisplayName(food, currentLang)}`;
       foodIdInput.value = food.id;

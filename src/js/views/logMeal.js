@@ -129,6 +129,9 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
   }
 
   function openGramsModal(food) {
+    if (modal && modal.parentElement !== document.getElementById('app')) {
+      document.getElementById('app').appendChild(modal);
+    }
     selectedFood = food;
     modalTitle.textContent = getFoodDisplayName(food, currentLang);
     gramsInput.value = "100";
