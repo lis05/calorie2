@@ -7,7 +7,18 @@ import { renderFoodDb } from './views/foodDb.js';
 import { renderSettings } from './views/settings.js';
 
 let currentDate = new Date();
-let currentTab = 'dashboard';
+const lastTab = localStorage.getItem('calorie2_last_tab');
+let currentTab = lastTab || 'dashboard';
+if (lastTab) localStorage.removeItem('calorie2_last_tab');
+
+function updateViewportHeight() {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${h}px`);
+}
+window.visualViewport?.addEventListener('resize', updateViewportHeight);
+window.visualViewport?.addEventListener('scroll', updateViewportHeight);
+window.addEventListener('resize', updateViewportHeight);
+updateViewportHeight();
 
 async function init() {
   initI18n();
@@ -26,7 +37,7 @@ async function init() {
 
   setupUI();
   updateNavLabels();
-  renderCurrentView();
+  switchTab(currentTab);
 }
 
 function setupUI() {

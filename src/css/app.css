@@ -13,11 +13,14 @@ html, body {
   line-height: 1.4;
   overflow: hidden;
   position: fixed;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: 100svh;
+  height: var(--app-height, 100svh);
   overscroll-behavior: none;
 }
 
@@ -31,7 +34,8 @@ input, button, select, textarea {
   width: 100%;
   margin: 0 auto;
   height: 100%;
-  height: 100dvh;
+  height: 100svh;
+  height: var(--app-height, 100svh);
   display: flex;
   flex-direction: column;
   position: relative;

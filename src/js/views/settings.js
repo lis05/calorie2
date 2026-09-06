@@ -164,8 +164,12 @@ export async function renderSettings(container, onLanguageChanged) {
       } catch (err) {
         console.error('Update error:', err);
       }
-      // Clean cache-busting reload that cleanly resets PWA viewport
-      const cleanUrl = window.location.href.split('?')[0].split('#')[0];
+      // Remember tab and perform clean cache-busting reload
+      localStorage.setItem('calorie2_last_tab', 'settings');
+      let cleanUrl = window.location.href.split('?')[0].split('#')[0];
+      if (!cleanUrl.endsWith('/') && !cleanUrl.endsWith('.html')) {
+        cleanUrl += '/';
+      }
       window.location.replace(cleanUrl + '?t=' + Date.now());
     });
   }
