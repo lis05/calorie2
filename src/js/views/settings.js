@@ -1,5 +1,6 @@
 import { t, setLanguage, getLanguage } from '../i18n.js';
 import { getTargetsForDate, saveDailyTargets, exportAllData, importAllData, clearAllData, toLocalDateString } from '../db.js';
+import { APP_VERSION } from '../version.js';
 
 export async function renderSettings(container, onLanguageChanged) {
   const todayStr = toLocalDateString(new Date());
@@ -90,6 +91,10 @@ export async function renderSettings(container, onLanguageChanged) {
           🗑️ ${t('clear_all_data')}
         </button>
       </div>
+    </div>
+
+    <div style="text-align:center; padding: 4px 0 20px; font-size: 0.8rem; color: var(--text-faint);">
+      ${t('version')}: <span style="font-family: monospace; font-weight:700; color: var(--text-muted);">${APP_VERSION}</span>
     </div>
   `;
 
