@@ -145,6 +145,10 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
   }
 
   function closeModal() {
+    gramsInput.blur();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     modal.classList.remove('open');
     selectedFood = null;
   }
@@ -160,6 +164,10 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
   const handleConfirmAdd = async (e) => {
     if (e) e.preventDefault();
+    gramsInput.blur();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     if (!selectedFood) return;
     const g = parseFloat(gramsInput.value) || 0;
     if (g <= 0) return;

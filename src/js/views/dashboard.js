@@ -307,6 +307,10 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   }
 
   function closeEditModal() {
+    editGramsInput.blur();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     editModal.classList.remove('open');
     activeEditingMeal = null;
     activeBaseFood = null;
@@ -322,6 +326,10 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
 
   const handleSaveEditMeal = async (e) => {
     if (e) e.preventDefault();
+    editGramsInput.blur();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     if (!activeEditingMeal) return;
     const g = parseFloat(editGramsInput.value) || 0;
     if (g <= 0) return;
