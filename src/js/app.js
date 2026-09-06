@@ -7,9 +7,7 @@ import { renderFoodDb } from './views/foodDb.js';
 import { renderSettings } from './views/settings.js';
 
 let currentDate = new Date();
-const lastTab = localStorage.getItem('calorie2_last_tab');
-let currentTab = lastTab || 'dashboard';
-if (lastTab) localStorage.removeItem('calorie2_last_tab');
+let currentTab = '';
 
 function updateViewportHeight() {
   const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -37,7 +35,10 @@ async function init() {
 
   setupUI();
   updateNavLabels();
-  switchTab(currentTab);
+
+  const targetTab = localStorage.getItem('calorie2_last_tab') || 'dashboard';
+  localStorage.removeItem('calorie2_last_tab');
+  switchTab(targetTab, false);
 }
 
 function setupUI() {
@@ -120,7 +121,7 @@ function transitionView(action) {
   }
 }
 
-export function switchTab(tab) {
+export function switchTab(tab, animate = true) {
   if (currentTab === tab) return;
   currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(btn => {
@@ -137,7 +138,11 @@ export function switchTab(tab) {
     dateSelector.style.display = (tab === 'dashboard' || tab === 'logMeal') ? 'flex' : 'none';
   }
 
-  transitionView(() => renderCurrentView());
+  if (animate) {
+    transitionView(() => renderCurrentView());
+  } else {
+    renderCurrentView();
+  }
 }
 
 function renderCurrentView() {
