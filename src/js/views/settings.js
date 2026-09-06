@@ -161,7 +161,9 @@ export async function renderSettings(container, onLanguageChanged) {
       } catch (err) {
         console.error('Update error:', err);
       }
-      window.location.reload(true);
+      // Clean cache-busting reload that cleanly resets PWA viewport
+      const cleanUrl = window.location.href.split('?')[0].split('#')[0];
+      window.location.replace(cleanUrl + '?t=' + Date.now());
     });
   }
 
