@@ -18,13 +18,14 @@
   --accent-danger: #ef4444;
 
   /* Nutrition Stat Colors */
-  --stat-cal: #10b981;  /* emerald green */
-  --stat-pro: #3b82f6;  /* bright blue */
-  --stat-carb: #f59e0b; /* warm amber */
-  --stat-fat: #ec4899;  /* pink/rose */
-  --stat-fib: #8b5cf6;  /* purple */
-  --stat-salt: #06b6d4; /* cyan */
-  --stat-sug: #f43f5e;  /* coral red */
+  --stat-cal: #10b981;     /* emerald green */
+  --stat-pro: #3b82f6;     /* bright blue */
+  --stat-carb: #f59e0b;    /* warm amber */
+  --stat-fat: #ec4899;     /* pink/rose */
+  --stat-sat-fat: #ec4899; /* pink/rose (same as fats) */
+  --stat-fib: #8b5cf6;     /* purple */
+  --stat-salt: #06b6d4;    /* cyan */
+  --stat-sug: #f59e0b;     /* warm amber (same as carbs) */
 
   --radius-sm: 8px;
   --radius-md: 14px;

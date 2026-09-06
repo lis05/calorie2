@@ -50,27 +50,31 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
           <div class="stats-table-2xn">
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot pro"></span>${t('protein')}</span>
-              <span id="preview-pro" class="stat-cell-val pro">0g</span>
+              <span id="preview-pro" class="stat-cell-val pro">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot carb"></span>${t('carbs')}</span>
-              <span id="preview-carb" class="stat-cell-val carb">0g</span>
+              <span id="preview-carb" class="stat-cell-val carb">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fat"></span>${t('fats')}</span>
-              <span id="preview-fat" class="stat-cell-val fat">0g</span>
+              <span id="preview-fat" class="stat-cell-val fat">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-cell-name"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</span>
+              <span id="preview-sat-fat" class="stat-cell-val sat-fat">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fib"></span>${t('fiber')}</span>
-              <span id="preview-fib" class="stat-cell-val fib">0g</span>
+              <span id="preview-fib" class="stat-cell-val fib">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot salt"></span>${t('salt')}</span>
-              <span id="preview-salt" class="stat-cell-val salt">0g</span>
+              <span id="preview-salt" class="stat-cell-val salt">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot sug"></span>${t('sugar')}</span>
-              <span id="preview-sug" class="stat-cell-val sug">0g</span>
+              <span id="preview-sug" class="stat-cell-val sug">0</span>
             </div>
           </div>
         </div>
@@ -104,6 +108,7 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
   const pPro = container.querySelector('#preview-pro');
   const pCarb = container.querySelector('#preview-carb');
   const pFat = container.querySelector('#preview-fat');
+  const pSatFat = container.querySelector('#preview-sat-fat');
   const pFib = container.querySelector('#preview-fib');
   const pSalt = container.querySelector('#preview-salt');
   const pSug = container.querySelector('#preview-sug');
@@ -112,13 +117,15 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
     if (!selectedFood) return;
     const g = parseFloat(gramsInput.value) || 0;
     const factor = g / 100;
+    const sf = selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0);
     pCal.textContent = `${Math.round((selectedFood.calories || 0) * factor)} ${t('kcal')}`;
-    pPro.textContent = `${Math.round((selectedFood.protein || 0) * factor * 10) / 10}g`;
-    pCarb.textContent = `${Math.round((selectedFood.carbs || 0) * factor * 10) / 10}g`;
-    pFat.textContent = `${Math.round((selectedFood.fats || 0) * factor * 10) / 10}g`;
-    pFib.textContent = `${Math.round((selectedFood.fiber || 0) * factor * 10) / 10}g`;
-    pSalt.textContent = `${Math.round((selectedFood.salt || 0) * factor * 100) / 100}g`;
-    pSug.textContent = `${Math.round((selectedFood.sugar || 0) * factor * 10) / 10}g`;
+    pPro.textContent = `${Math.round((selectedFood.protein || 0) * factor * 10) / 10}`;
+    pCarb.textContent = `${Math.round((selectedFood.carbs || 0) * factor * 10) / 10}`;
+    pFat.textContent = `${Math.round((selectedFood.fats || 0) * factor * 10) / 10}`;
+    pSatFat.textContent = `${Math.round(sf * factor * 10) / 10}`;
+    pFib.textContent = `${Math.round((selectedFood.fiber || 0) * factor * 10) / 10}`;
+    pSalt.textContent = `${Math.round((selectedFood.salt || 0) * factor * 10000) / 10000}`;
+    pSug.textContent = `${Math.round((selectedFood.sugar || 0) * factor * 10) / 10}`;
   }
 
   function openGramsModal(food) {
@@ -153,6 +160,7 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
     const factor = g / 100;
     const dateStr = toLocalDateString(currentDate);
     const foodName = getFoodDisplayName(selectedFood, currentLang);
+    const sf = selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0);
 
     await addMeal({
       date: dateStr,
@@ -164,8 +172,9 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       protein: Math.round((selectedFood.protein || 0) * factor * 10) / 10,
       carbs: Math.round((selectedFood.carbs || 0) * factor * 10) / 10,
       fats: Math.round((selectedFood.fats || 0) * factor * 10) / 10,
+      saturated_fats: Math.round(sf * factor * 10) / 10,
       fiber: Math.round((selectedFood.fiber || 0) * factor * 10) / 10,
-      salt: Math.round((selectedFood.salt || 0) * factor * 100) / 100,
+      salt: Math.round((selectedFood.salt || 0) * factor * 10000) / 10000,
       sugar: Math.round((selectedFood.sugar || 0) * factor * 10) / 10,
       created_at: new Date().toISOString()
     });
@@ -182,6 +191,7 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
     resultsContainer.innerHTML = list.map(f => {
       const displayName = getFoodDisplayName(f, currentLang);
+      const satFat = f.saturated_fats !== undefined ? f.saturated_fats : (f.sat_fat || 0);
       return `
         <div class="food-card clickable" data-id="${f.id}">
           <div class="food-card-header">
@@ -201,27 +211,31 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
           <div class="stats-table-2xn">
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot pro"></span>${t('protein')}</span>
-              <span class="stat-cell-val pro">${f.protein || 0}g</span>
+              <span class="stat-cell-val pro">${f.protein || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot carb"></span>${t('carbs')}</span>
-              <span class="stat-cell-val carb">${f.carbs || 0}g</span>
+              <span class="stat-cell-val carb">${f.carbs || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fat"></span>${t('fats')}</span>
-              <span class="stat-cell-val fat">${f.fats || 0}g</span>
+              <span class="stat-cell-val fat">${f.fats || 0}</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-cell-name"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</span>
+              <span class="stat-cell-val sat-fat">${satFat}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fib"></span>${t('fiber')}</span>
-              <span class="stat-cell-val fib">${f.fiber || 0}g</span>
+              <span class="stat-cell-val fib">${f.fiber || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot salt"></span>${t('salt')}</span>
-              <span class="stat-cell-val salt">${f.salt || 0}g</span>
+              <span class="stat-cell-val salt">${f.salt !== undefined ? f.salt : 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot sug"></span>${t('sugar')}</span>
-              <span class="stat-cell-val sug">${f.sugar || 0}g</span>
+              <span class="stat-cell-val sug">${f.sugar || 0}</span>
             </div>
           </div>
         </div>

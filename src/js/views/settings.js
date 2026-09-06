@@ -8,8 +8,9 @@ export async function renderSettings(container, onLanguageChanged) {
   const targetPro = targets.protein || 90;
   const targetCarb = targets.carbs || 220;
   const targetFat = targets.fats || 65;
+  const targetSatFat = targets.saturated_fats !== undefined ? targets.saturated_fats : (targets.sat_fat !== undefined ? targets.sat_fat : 20);
   const targetFib = targets.fiber || 30;
-  const targetSalt = targets.salt || 5;
+  const targetSalt = targets.salt !== undefined ? targets.salt : 5;
   const targetSugar = targets.sugar || 40;
   const currentLang = getLanguage();
   const currentTheme = localStorage.getItem('calorie2_theme') || 'dark';
@@ -38,12 +39,16 @@ export async function renderSettings(container, onLanguageChanged) {
             <input type="number" id="set-target-fat" class="form-input" value="${targetFat}" required />
           </div>
           <div class="form-group">
+            <label class="form-label">${t('target_sat_fat')}</label>
+            <input type="number" id="set-target-sat-fat" class="form-input" value="${targetSatFat}" required />
+          </div>
+          <div class="form-group">
             <label class="form-label">${t('target_fiber')}</label>
             <input type="number" id="set-target-fib" class="form-input" value="${targetFib}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_salt')}</label>
-            <input type="number" id="set-target-salt" class="form-input" step="0.1" value="${targetSalt}" required />
+            <input type="number" id="set-target-salt" class="form-input" step="0.0001" value="${targetSalt}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_sugar')}</label>
@@ -93,6 +98,7 @@ export async function renderSettings(container, onLanguageChanged) {
     const p = Number(container.querySelector('#set-target-pro').value);
     const cb = Number(container.querySelector('#set-target-carb').value);
     const f = Number(container.querySelector('#set-target-fat').value);
+    const sf = Number(container.querySelector('#set-target-sat-fat').value);
     const fb = Number(container.querySelector('#set-target-fib').value);
     const sl = Number(container.querySelector('#set-target-salt').value);
     const sg = Number(container.querySelector('#set-target-sug').value);
@@ -103,6 +109,7 @@ export async function renderSettings(container, onLanguageChanged) {
       protein: p,
       carbs: cb,
       fats: f,
+      saturated_fats: sf,
       fiber: fb,
       salt: sl,
       sugar: sg

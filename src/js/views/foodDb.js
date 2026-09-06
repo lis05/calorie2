@@ -49,27 +49,31 @@ export async function renderFoodDb(container) {
               <input type="number" id="food-cal-input" class="form-input" step="0.1" required />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('protein')} (g)</label>
+              <label class="form-label">${t('protein')}</label>
               <input type="number" id="food-pro-input" class="form-input" step="0.1" value="0" />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('carbs')} (g)</label>
+              <label class="form-label">${t('carbs')}</label>
               <input type="number" id="food-carb-input" class="form-input" step="0.1" value="0" />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('fats')} (g)</label>
+              <label class="form-label">${t('fats')}</label>
               <input type="number" id="food-fat-input" class="form-input" step="0.1" value="0" />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('fiber')} (g)</label>
+              <label class="form-label">${t('saturated_fats')}</label>
+              <input type="number" id="food-sat-fat-input" class="form-input" step="0.1" value="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('fiber')}</label>
               <input type="number" id="food-fib-input" class="form-input" step="0.1" value="0" />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('salt')} (g)</label>
-              <input type="number" id="food-salt-input" class="form-input" step="0.01" value="0" />
+              <label class="form-label">${t('salt')}</label>
+              <input type="number" id="food-salt-input" class="form-input" step="0.0001" value="0" />
             </div>
             <div class="form-group">
-              <label class="form-label">${t('sugar')} (g)</label>
+              <label class="form-label">${t('sugar')}</label>
               <input type="number" id="food-sug-input" class="form-input" step="0.1" value="0" />
             </div>
           </div>
@@ -95,6 +99,7 @@ export async function renderFoodDb(container) {
   const foodProInput = container.querySelector('#food-pro-input');
   const foodCarbInput = container.querySelector('#food-carb-input');
   const foodFatInput = container.querySelector('#food-fat-input');
+  const foodSatFatInput = container.querySelector('#food-sat-fat-input');
   const foodFibInput = container.querySelector('#food-fib-input');
   const foodSaltInput = container.querySelector('#food-salt-input');
   const foodSugInput = container.querySelector('#food-sug-input');
@@ -109,8 +114,9 @@ export async function renderFoodDb(container) {
       foodProInput.value = food.protein || 0;
       foodCarbInput.value = food.carbs || 0;
       foodFatInput.value = food.fats || 0;
+      foodSatFatInput.value = food.saturated_fats !== undefined ? food.saturated_fats : (food.sat_fat || 0);
       foodFibInput.value = food.fiber || 0;
-      foodSaltInput.value = food.salt || 0;
+      foodSaltInput.value = food.salt !== undefined ? food.salt : 0;
       foodSugInput.value = food.sugar || 0;
     } else {
       modalTitle.textContent = t('add_food');
@@ -118,9 +124,11 @@ export async function renderFoodDb(container) {
       foodIdInput.value = '';
       foodNameUkInput.value = '';
       foodNameEnInput.value = '';
+      foodCalInput.value = '';
       foodProInput.value = '0';
       foodCarbInput.value = '0';
       foodFatInput.value = '0';
+      foodSatFatInput.value = '0';
       foodFibInput.value = '0';
       foodSaltInput.value = '0';
       foodSugInput.value = '0';
@@ -162,27 +170,31 @@ export async function renderFoodDb(container) {
           <div class="stats-table-2xn">
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot pro"></span>${t('protein')}</span>
-              <span class="stat-cell-val pro">${f.protein || 0}g</span>
+              <span class="stat-cell-val pro">${f.protein || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot carb"></span>${t('carbs')}</span>
-              <span class="stat-cell-val carb">${f.carbs || 0}g</span>
+              <span class="stat-cell-val carb">${f.carbs || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fat"></span>${t('fats')}</span>
-              <span class="stat-cell-val fat">${f.fats || 0}g</span>
+              <span class="stat-cell-val fat">${f.fats || 0}</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-cell-name"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</span>
+              <span class="stat-cell-val sat-fat">${f.saturated_fats !== undefined ? f.saturated_fats : (f.sat_fat || 0)}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fib"></span>${t('fiber')}</span>
-              <span class="stat-cell-val fib">${f.fiber || 0}g</span>
+              <span class="stat-cell-val fib">${f.fiber || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot salt"></span>${t('salt')}</span>
-              <span class="stat-cell-val salt">${f.salt || 0}g</span>
+              <span class="stat-cell-val salt">${f.salt !== undefined ? f.salt : 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot sug"></span>${t('sugar')}</span>
-              <span class="stat-cell-val sug">${f.sugar || 0}g</span>
+              <span class="stat-cell-val sug">${f.sugar || 0}</span>
             </div>
           </div>
         </div>
@@ -235,6 +247,7 @@ export async function renderFoodDb(container) {
     const pro = parseFloat(foodProInput.value) || 0;
     const carb = parseFloat(foodCarbInput.value) || 0;
     const fat = parseFloat(foodFatInput.value) || 0;
+    const satFat = parseFloat(foodSatFatInput.value) || 0;
     const fib = parseFloat(foodFibInput.value) || 0;
     const salt = parseFloat(foodSaltInput.value) || 0;
     const sug = parseFloat(foodSugInput.value) || 0;
@@ -252,6 +265,7 @@ export async function renderFoodDb(container) {
         protein: pro,
         carbs: carb,
         fats: fat,
+        saturated_fats: satFat,
         fiber: fib,
         salt,
         sugar: sug
@@ -267,6 +281,7 @@ export async function renderFoodDb(container) {
         protein: pro,
         carbs: carb,
         fats: fat,
+        saturated_fats: satFat,
         fiber: fib,
         salt,
         sugar: sug

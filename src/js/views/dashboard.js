@@ -14,17 +14,19 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   const targetPro = targets.protein || 90;
   const targetCarb = targets.carbs || 220;
   const targetFat = targets.fats || 65;
+  const targetSatFat = targets.saturated_fats !== undefined ? targets.saturated_fats : 20;
   const targetFib = targets.fiber || 30;
   const targetSalt = targets.salt || 5;
   const targetSugar = targets.sugar || 40;
 
   // Calculate totals
-  let totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0, totalFib = 0, totalSalt = 0, totalSugar = 0;
+  let totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0, totalSatFat = 0, totalFib = 0, totalSalt = 0, totalSugar = 0;
   for (const m of meals) {
     totalCal += m.calories || 0;
     totalPro += m.protein || 0;
     totalCarb += m.carbs || 0;
     totalFat += m.fats || 0;
+    totalSatFat += m.saturated_fats || m.sat_fat || 0;
     totalFib += m.fiber || 0;
     totalSalt += m.salt || 0;
     totalSugar += m.sugar || 0;
@@ -34,57 +36,76 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   totalPro = Math.round(totalPro * 10) / 10;
   totalCarb = Math.round(totalCarb * 10) / 10;
   totalFat = Math.round(totalFat * 10) / 10;
+  totalSatFat = Math.round(totalSatFat * 10) / 10;
   totalFib = Math.round(totalFib * 10) / 10;
-  totalSalt = Math.round(totalSalt * 100) / 100;
+  totalSalt = Math.round(totalSalt * 10000) / 10000;
   totalSugar = Math.round(totalSugar * 10) / 10;
 
   const remainingCal = targetCal - totalCal;
   const isOver = remainingCal < 0;
 
   container.innerHTML = `
-    <div class="card calories-hero">
-      <div style="font-size:0.85rem; font-weight:700; letter-spacing:0.5px; color:var(--text-muted);">
-        ${t('daily_calories')}
-      </div>
-      <div class="calories-number" style="color: ${isOver ? 'var(--accent-warning)' : 'var(--stat-cal)'}">
-        ${totalCal}
-      </div>
-      <div class="calories-sub">
-        ${isOver ? `+${Math.abs(remainingCal)} ${t('kcal')} ${t('over_goal')}` : `${remainingCal} ${t('kcal')} ${t('remaining_kcal')}`} (${t('goal').toLowerCase()}: ${targetCal})
+    <!-- 3x3 Stats Grid -->
+    <div class="targets-grid-3x3">
+      <!-- (1, 1) & (1, 2): Calories -->
+      <div class="target-stat-box cal-box">
+        <div class="stat-label"><span class="stat-dot cal"></span>${t('calories_label')}</div>
+        <div class="cal-main-row">
+          <span class="cal-main-val" style="color: ${isOver ? 'var(--accent-warning)' : 'var(--stat-cal)'}">${totalCal}</span>
+          <span class="stat-target">/ ${targetCal}</span>
+        </div>
+        <div class="cal-sub-text">
+          ${isOver ? `+${Math.abs(remainingCal)} ${t('over_goal')}` : `${remainingCal} ${t('remaining_kcal')}`}
+        </div>
       </div>
 
-      <!-- 6 Targets Grid -->
-      <div class="targets-grid">
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot pro"></span>${t('protein')}</div>
-          <div class="stat-value" style="color:var(--stat-pro)">${totalPro}g</div>
-          <div class="stat-target">/ ${targetPro}g</div>
-        </div>
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot carb"></span>${t('carbs')}</div>
-          <div class="stat-value" style="color:var(--stat-carb)">${totalCarb}g</div>
-          <div class="stat-target">/ ${targetCarb}g</div>
-        </div>
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot fat"></span>${t('fats')}</div>
-          <div class="stat-value" style="color:var(--stat-fat)">${totalFat}g</div>
-          <div class="stat-target">/ ${targetFat}g</div>
-        </div>
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot fib"></span>${t('fiber')}</div>
-          <div class="stat-value" style="color:var(--stat-fib)">${totalFib}g</div>
-          <div class="stat-target">/ ${targetFib}g</div>
-        </div>
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot salt"></span>${t('salt')}</div>
-          <div class="stat-value" style="color:var(--stat-salt)">${totalSalt}g</div>
-          <div class="stat-target">/ ${targetSalt}g</div>
-        </div>
-        <div class="target-stat-box">
-          <div class="stat-label"><span class="stat-dot sug"></span>${t('sugar')}</div>
-          <div class="stat-value" style="color:var(--stat-sug)">${totalSugar}g</div>
-          <div class="stat-target">/ ${targetSugar}g</div>
-        </div>
+      <!-- (1, 3): Protein -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot pro"></span>${t('protein')}</div>
+        <div class="stat-value" style="color:var(--stat-pro)">${totalPro}</div>
+        <div class="stat-target">/ ${targetPro}</div>
+      </div>
+
+      <!-- (2, 1): Fats -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot fat"></span>${t('fats')}</div>
+        <div class="stat-value" style="color:var(--stat-fat)">${totalFat}</div>
+        <div class="stat-target">/ ${targetFat}</div>
+      </div>
+
+      <!-- (2, 2): Carbs -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot carb"></span>${t('carbs')}</div>
+        <div class="stat-value" style="color:var(--stat-carb)">${totalCarb}</div>
+        <div class="stat-target">/ ${targetCarb}</div>
+      </div>
+
+      <!-- (2, 3): Fiber -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot fib"></span>${t('fiber')}</div>
+        <div class="stat-value" style="color:var(--stat-fib)">${totalFib}</div>
+        <div class="stat-target">/ ${targetFib}</div>
+      </div>
+
+      <!-- (3, 1): Saturated Fats -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</div>
+        <div class="stat-value" style="color:var(--stat-sat-fat)">${totalSatFat}</div>
+        <div class="stat-target">/ ${targetSatFat}</div>
+      </div>
+
+      <!-- (3, 2): Sugar -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot sug"></span>${t('sugar')}</div>
+        <div class="stat-value" style="color:var(--stat-sug)">${totalSugar}</div>
+        <div class="stat-target">/ ${targetSugar}</div>
+      </div>
+
+      <!-- (3, 3): Salt -->
+      <div class="target-stat-box">
+        <div class="stat-label"><span class="stat-dot salt"></span>${t('salt')}</div>
+        <div class="stat-value" style="color:var(--stat-salt)">${totalSalt}</div>
+        <div class="stat-target">/ ${targetSalt}</div>
       </div>
     </div>
 
@@ -125,27 +146,31 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
           <div class="stats-table-2xn">
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot pro"></span>${t('protein')}</span>
-              <span class="stat-cell-val pro">${m.protein || 0}g</span>
+              <span class="stat-cell-val pro">${m.protein || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot carb"></span>${t('carbs')}</span>
-              <span class="stat-cell-val carb">${m.carbs || 0}g</span>
+              <span class="stat-cell-val carb">${m.carbs || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fat"></span>${t('fats')}</span>
-              <span class="stat-cell-val fat">${m.fats || 0}g</span>
+              <span class="stat-cell-val fat">${m.fats || 0}</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-cell-name"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</span>
+              <span class="stat-cell-val sat-fat">${m.saturated_fats !== undefined ? m.saturated_fats : (m.sat_fat || 0)}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fib"></span>${t('fiber')}</span>
-              <span class="stat-cell-val fib">${m.fiber || 0}g</span>
+              <span class="stat-cell-val fib">${m.fiber || 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot salt"></span>${t('salt')}</span>
-              <span class="stat-cell-val salt">${m.salt || 0}g</span>
+              <span class="stat-cell-val salt">${m.salt !== undefined ? m.salt : 0}</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot sug"></span>${t('sugar')}</span>
-              <span class="stat-cell-val sug">${m.sugar || 0}g</span>
+              <span class="stat-cell-val sug">${m.sugar || 0}</span>
             </div>
           </div>
         </div>
@@ -175,27 +200,31 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
           <div class="stats-table-2xn">
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot pro"></span>${t('protein')}</span>
-              <span id="edit-preview-pro" class="stat-cell-val pro">0g</span>
+              <span id="edit-preview-pro" class="stat-cell-val pro">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot carb"></span>${t('carbs')}</span>
-              <span id="edit-preview-carb" class="stat-cell-val carb">0g</span>
+              <span id="edit-preview-carb" class="stat-cell-val carb">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fat"></span>${t('fats')}</span>
-              <span id="edit-preview-fat" class="stat-cell-val fat">0g</span>
+              <span id="edit-preview-fat" class="stat-cell-val fat">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-cell-name"><span class="stat-dot sat-fat"></span>${t('saturated_fats_short')}</span>
+              <span id="edit-preview-sat-fat" class="stat-cell-val sat-fat">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot fib"></span>${t('fiber')}</span>
-              <span id="edit-preview-fib" class="stat-cell-val fib">0g</span>
+              <span id="edit-preview-fib" class="stat-cell-val fib">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot salt"></span>${t('salt')}</span>
-              <span id="edit-preview-salt" class="stat-cell-val salt">0g</span>
+              <span id="edit-preview-salt" class="stat-cell-val salt">0</span>
             </div>
             <div class="stat-cell">
               <span class="stat-cell-name"><span class="stat-dot sug"></span>${t('sugar')}</span>
-              <span id="edit-preview-sug" class="stat-cell-val sug">0g</span>
+              <span id="edit-preview-sug" class="stat-cell-val sug">0</span>
             </div>
           </div>
         </div>
@@ -218,6 +247,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   const epPro = container.querySelector('#edit-preview-pro');
   const epCarb = container.querySelector('#edit-preview-carb');
   const epFat = container.querySelector('#edit-preview-fat');
+  const epSatFat = container.querySelector('#edit-preview-sat-fat');
   const epFib = container.querySelector('#edit-preview-fib');
   const epSalt = container.querySelector('#edit-preview-salt');
   const epSug = container.querySelector('#edit-preview-sug');
@@ -228,7 +258,6 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   function updateEditPreview() {
     if (!activeEditingMeal) return;
     const g = parseFloat(editGramsInput.value) || 0;
-    // calculate factor: if activeBaseFood exists, per 100g, else scale from current meal amount
     let per100 = activeBaseFood;
     if (!per100) {
       const origG = activeEditingMeal.amount_g || 100;
@@ -237,6 +266,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
         protein: (activeEditingMeal.protein / origG) * 100,
         carbs: (activeEditingMeal.carbs / origG) * 100,
         fats: (activeEditingMeal.fats / origG) * 100,
+        saturated_fats: ((activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) / origG) * 100,
         fiber: (activeEditingMeal.fiber / origG) * 100,
         salt: (activeEditingMeal.salt / origG) * 100,
         sugar: (activeEditingMeal.sugar / origG) * 100
@@ -245,12 +275,13 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
 
     const factor = g / 100;
     epCal.textContent = `${Math.round((per100.calories || 0) * factor)} ${t('kcal')}`;
-    epPro.textContent = `${Math.round((per100.protein || 0) * factor * 10) / 10}g`;
-    epCarb.textContent = `${Math.round((per100.carbs || 0) * factor * 10) / 10}g`;
-    epFat.textContent = `${Math.round((per100.fats || 0) * factor * 10) / 10}g`;
-    epFib.textContent = `${Math.round((per100.fiber || 0) * factor * 10) / 10}g`;
-    epSalt.textContent = `${Math.round((per100.salt || 0) * factor * 100) / 100}g`;
-    epSug.textContent = `${Math.round((per100.sugar || 0) * factor * 10) / 10}g`;
+    epPro.textContent = `${Math.round((per100.protein || 0) * factor * 10) / 10}`;
+    epCarb.textContent = `${Math.round((per100.carbs || 0) * factor * 10) / 10}`;
+    epFat.textContent = `${Math.round((per100.fats || 0) * factor * 10) / 10}`;
+    epSatFat.textContent = `${Math.round((per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0)) * factor * 10) / 10}`;
+    epFib.textContent = `${Math.round((per100.fiber || 0) * factor * 10) / 10}`;
+    epSalt.textContent = `${Math.round((per100.salt || 0) * factor * 10000) / 10000}`;
+    epSug.textContent = `${Math.round((per100.sugar || 0) * factor * 10) / 10}`;
   }
 
   async function openEditModal(meal) {
@@ -296,6 +327,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
         protein: (activeEditingMeal.protein / origG) * 100,
         carbs: (activeEditingMeal.carbs / origG) * 100,
         fats: (activeEditingMeal.fats / origG) * 100,
+        saturated_fats: ((activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) / origG) * 100,
         fiber: (activeEditingMeal.fiber / origG) * 100,
         salt: (activeEditingMeal.salt / origG) * 100,
         sugar: (activeEditingMeal.sugar / origG) * 100
@@ -308,8 +340,9 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     activeEditingMeal.protein = Math.round((per100.protein || 0) * factor * 10) / 10;
     activeEditingMeal.carbs = Math.round((per100.carbs || 0) * factor * 10) / 10;
     activeEditingMeal.fats = Math.round((per100.fats || 0) * factor * 10) / 10;
+    activeEditingMeal.saturated_fats = Math.round((per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0)) * factor * 10) / 10;
     activeEditingMeal.fiber = Math.round((per100.fiber || 0) * factor * 10) / 10;
-    activeEditingMeal.salt = Math.round((per100.salt || 0) * factor * 100) / 100;
+    activeEditingMeal.salt = Math.round((per100.salt || 0) * factor * 10000) / 10000;
     activeEditingMeal.sugar = Math.round((per100.sugar || 0) * factor * 10) / 10;
 
     await updateMeal(activeEditingMeal);

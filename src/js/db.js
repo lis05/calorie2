@@ -102,6 +102,7 @@ async function seedDefaultsIfEmpty(db) {
         protein: 90,
         carbs: 220,
         fats: 65,
+        saturated_fats: 20,
         fiber: 30,
         salt: 5,
         sugar: 40
@@ -308,6 +309,7 @@ export async function getTargetsForDate(dateStr) {
           protein: 90,
           carbs: 220,
           fats: 65,
+          saturated_fats: 20,
           fiber: 30,
           salt: 5,
           sugar: 40
@@ -321,6 +323,7 @@ export async function getTargetsForDate(dateStr) {
         protein: 90,
         carbs: 220,
         fats: 65,
+        saturated_fats: 20,
         fiber: 30,
         salt: 5,
         sugar: 40

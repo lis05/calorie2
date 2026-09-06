@@ -6,16 +6,19 @@
   user-select: none;
 }
 
-body {
+html, body {
   font-family: var(--font-main);
   background-color: var(--bg-color);
   color: var(--text-main);
   line-height: 1.4;
-  overflow-x: hidden;
-  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
   height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  top: 0;
+  left: 0;
+  overscroll-behavior: none;
 }
 
 input, button, select, textarea {
@@ -28,6 +31,7 @@ input, button, select, textarea {
   width: 100%;
   margin: 0 auto;
   height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -36,13 +40,15 @@ input, button, select, textarea {
 
 /* Header */
 .app-header {
+  flex-shrink: 0;
+  width: 100%;
   padding: 12px 14px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--surface-color);
   border-bottom: 1px solid var(--border-subtle);
-  z-index: 10;
+  z-index: 30;
   min-width: 0;
 }
 
@@ -92,8 +98,10 @@ input, button, select, textarea {
 .view-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 16px calc(var(--nav-height) + 16px);
+  overflow-x: hidden;
+  padding: 14px 14px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 24px);
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* Card */
@@ -106,61 +114,89 @@ input, button, select, textarea {
   border: 1px solid var(--border-card);
 }
 
-/* Daily summary dashboard card */
-.calories-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 20px 16px;
-}
-
-.calories-number {
-  font-size: 2.75rem;
-  font-weight: 800;
-  line-height: 1;
-  margin: 8px 0 4px;
-}
-
-.calories-sub {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-/* Top Targets Grid (All 6 core macros & nutrients) */
-.targets-grid {
+/* Main 3x3 Stats Grid */
+.targets-grid-3x3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto auto;
   gap: 8px;
-  margin-top: 14px;
-  width: 100%;
+  padding: 12px;
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
 }
 
 .target-stat-box {
   background: var(--surface-color);
-  padding: 10px 6px 8px;
+  padding: 8px 4px 6px;
   border-radius: var(--radius-sm);
   text-align: center;
   border: 1px solid var(--border-card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.target-stat-box.cal-box {
+  grid-column: 1 / 3; /* (1, 1) and (1, 2) */
+  grid-row: 1;
+  padding: 8px 10px;
+}
+
+.cal-main-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin: 2px 0 1px;
+}
+
+.cal-main-val {
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.cal-sub-text {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .stat-label {
-  font-size: 0.72rem;
+  font-size: clamp(0.58rem, 1.8vw, 0.68rem);
   text-transform: uppercase;
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .stat-value {
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 2.6vw, 0.98rem);
   font-weight: 700;
+  font-family: monospace, monospace;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .stat-target {
-  font-size: 0.72rem;
+  font-size: clamp(0.65rem, 1.8vw, 0.72rem);
   color: var(--text-faint);
+  font-family: monospace, monospace;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 /* Section Header */
@@ -282,9 +318,11 @@ input, button, select, textarea {
   display: inline-block;
 }
 
+.stat-dot.cal { background: var(--stat-cal); }
 .stat-dot.pro { background: var(--stat-pro); }
 .stat-dot.carb { background: var(--stat-carb); }
 .stat-dot.fat { background: var(--stat-fat); }
+.stat-dot.sat-fat { background: var(--stat-sat-fat); }
 .stat-dot.fib { background: var(--stat-fib); }
 .stat-dot.salt { background: var(--stat-salt); }
 .stat-dot.sug { background: var(--stat-sug); }
@@ -294,9 +332,11 @@ input, button, select, textarea {
   font-family: monospace, monospace;
 }
 
+.stat-cell-val.cal { color: var(--stat-cal); }
 .stat-cell-val.pro { color: var(--stat-pro); }
 .stat-cell-val.carb { color: var(--stat-carb); }
 .stat-cell-val.fat { color: var(--stat-fat); }
+.stat-cell-val.sat-fat { color: var(--stat-sat-fat); }
 .stat-cell-val.fib { color: var(--stat-fib); }
 .stat-cell-val.salt { color: var(--stat-salt); }
 .stat-cell-val.sug { color: var(--stat-sug); }
@@ -402,18 +442,20 @@ input, button, select, textarea {
 
 /* Bottom Navigation Bar */
 .bottom-nav {
-  position: absolute;
+  position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: var(--nav-height);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 540px;
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
   background: var(--surface-color);
   display: flex;
   justify-content: space-around;
   align-items: center;
   border-top: 1px solid var(--border-subtle);
-  z-index: 20;
-  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 30;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow: hidden;
 }
 
