@@ -179,15 +179,16 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
 
     <!-- Edit Meal Modal -->
     <div id="edit-meal-modal" class="modal-overlay">
-      <div class="modal-card">
+      <form id="edit-meal-form" class="modal-card">
         <div class="modal-header">
           <h3 id="edit-modal-title">${t('edit_meal')}</h3>
-          <button id="edit-modal-close" class="icon-btn">✕</button>
+          <button type="button" id="edit-modal-close" class="icon-btn">✕</button>
         </div>
 
         <div style="text-align:center; margin: 10px 0 16px;">
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">${t('amount_g')}</div>
           <input type="number" id="edit-grams-input" class="form-input" min="1" step="1"
+            enterkeyhint="done"
             style="font-size:2rem; text-align:center; font-weight:800; width:160px; margin:0 auto; padding:8px;" />
         </div>
 
@@ -229,10 +230,10 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
           </div>
         </div>
 
-        <button id="btn-save-edit-meal" class="btn-primary">
+        <button type="submit" id="btn-save-edit-meal" class="btn-primary">
           ${t('save_changes')}
         </button>
-      </div>
+      </form>
     </div>
   `;
 
@@ -317,7 +318,10 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   });
   editGramsInput.addEventListener('input', updateEditPreview);
 
-  saveEditBtn.addEventListener('click', async () => {
+  const editMealForm = container.querySelector('#edit-meal-form');
+
+  const handleSaveEditMeal = async (e) => {
+    if (e) e.preventDefault();
     if (!activeEditingMeal) return;
     const g = parseFloat(editGramsInput.value) || 0;
     if (g <= 0) return;
@@ -351,6 +355,19 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     await updateMeal(activeEditingMeal);
     closeEditModal();
     renderDashboard(container, currentDate, onDateChange, onNavigateToLog);
+  };
+
+  if (editMealForm) {
+    editMealForm.addEventListener('submit', handleSaveEditMeal);
+  } else {
+    saveEditBtn.addEventListener('click', handleSaveEditMeal);
+  }
+
+  editGramsInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEditMeal();
+    }
   });
 
   // Clicking meal opens edit modal

@@ -29,15 +29,16 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
     <!-- Modal for entering grams -->
     <div id="grams-modal" class="modal-overlay">
-      <div class="modal-card">
+      <form id="grams-modal-form" class="modal-card">
         <div class="modal-header">
           <h3 id="modal-food-title"></h3>
-          <button id="modal-close-btn" class="icon-btn">✕</button>
+          <button type="button" id="modal-close-btn" class="icon-btn">✕</button>
         </div>
 
         <div style="text-align:center; margin: 8px 0 14px;">
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">${t('amount_g')}</div>
           <input type="number" id="grams-input" class="form-input" value="100" min="1" step="1"
+            enterkeyhint="done"
             style="font-size:2rem; text-align:center; font-weight:800; width:160px; margin:0 auto; padding:8px;" />
         </div>
 
@@ -79,10 +80,10 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
           </div>
         </div>
 
-        <button id="btn-confirm-add" class="btn-primary">
+        <button type="submit" id="btn-confirm-add" class="btn-primary">
           ${t('add')}
         </button>
-      </div>
+      </form>
     </div>
   `;
 
@@ -155,7 +156,10 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
   gramsInput.addEventListener('input', updatePreview);
 
-  confirmAddBtn.addEventListener('click', async () => {
+  const gramsForm = container.querySelector('#grams-modal-form');
+
+  const handleConfirmAdd = async (e) => {
+    if (e) e.preventDefault();
     if (!selectedFood) return;
     const g = parseFloat(gramsInput.value) || 0;
     if (g <= 0) return;
@@ -184,6 +188,19 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
     closeModal();
     onMealSaved();
+  };
+
+  if (gramsForm) {
+    gramsForm.addEventListener('submit', handleConfirmAdd);
+  } else {
+    confirmAddBtn.addEventListener('click', handleConfirmAdd);
+  }
+
+  gramsInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmAdd();
+    }
   });
 
   function renderList(list) {
