@@ -47,7 +47,7 @@ function setupUI() {
     prevDayBtn.addEventListener('click', () => {
       currentDate.setDate(currentDate.getDate() - 1);
       updateDateDisplay();
-      renderCurrentView();
+      transitionView(() => renderCurrentView());
     });
   }
 
@@ -55,7 +55,7 @@ function setupUI() {
     nextDayBtn.addEventListener('click', () => {
       currentDate.setDate(currentDate.getDate() + 1);
       updateDateDisplay();
-      renderCurrentView();
+      transitionView(() => renderCurrentView());
     });
   }
 
@@ -66,7 +66,7 @@ function setupUI() {
     dateDisplay.addEventListener('click', () => {
       currentDate = new Date();
       updateDateDisplay();
-      renderCurrentView();
+      transitionView(() => renderCurrentView());
     });
   }
 
@@ -88,7 +88,29 @@ function updateDateDisplay() {
   }
 }
 
+function transitionView(action) {
+  const container = document.getElementById('view-content');
+  if (!container) {
+    action();
+    return;
+  }
+
+  if ('startViewTransition' in document) {
+    document.startViewTransition(() => {
+      action();
+      container.scrollTop = 0;
+    });
+  } else {
+    container.classList.remove('view-fade-in');
+    void container.offsetWidth; // trigger reflow
+    action();
+    container.scrollTop = 0;
+    container.classList.add('view-fade-in');
+  }
+}
+
 export function switchTab(tab) {
+  if (currentTab === tab) return;
   currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(btn => {
     if (btn.getAttribute('data-tab') === tab) {
@@ -104,7 +126,7 @@ export function switchTab(tab) {
     dateSelector.style.display = (tab === 'dashboard' || tab === 'logMeal') ? 'flex' : 'none';
   }
 
-  renderCurrentView();
+  transitionView(() => renderCurrentView());
 }
 
 function renderCurrentView() {

@@ -694,3 +694,59 @@ input, button, select, textarea {
   gap: 6px;
   margin-top: 14px;
 }
+
+/* Screen Switching Animations */
+.app-header {
+  view-transition-name: app-header;
+}
+
+.bottom-nav {
+  view-transition-name: bottom-nav;
+}
+
+#view-content {
+  view-transition-name: view-content;
+}
+
+::view-transition-old(view-content) {
+  animation: viewFadeOut 0.16s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(view-content) {
+  animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes viewFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.995);
+  }
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fallback animation for browsers without View Transitions API */
+.view-fade-in {
+  animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(view-content),
+  ::view-transition-new(view-content),
+  .view-fade-in {
+    animation: none !important;
+  }
+}
