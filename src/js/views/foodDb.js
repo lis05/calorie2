@@ -105,6 +105,9 @@ export async function renderFoodDb(container) {
   const foodSugInput = container.querySelector('#food-sug-input');
 
   function openModal(food = null) {
+    document.querySelectorAll('#app > #food-edit-modal').forEach(el => {
+      if (el !== modal) el.remove();
+    });
     if (modal && modal.parentElement !== document.getElementById('app')) {
       document.getElementById('app').appendChild(modal);
     }
@@ -218,7 +221,7 @@ export async function renderFoodDb(container) {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = Number(btn.getAttribute('data-del-food'));
-        if (confirm(t('confirm_delete_meal'))) {
+        if (confirm(t('confirm_delete_food'))) {
           await deleteFood(id);
           foods = await getAllFoods();
           renderRows(foods);
@@ -229,9 +232,15 @@ export async function renderFoodDb(container) {
 
   searchInput.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase().trim();
+    if (!q) {
+      renderRows(foods);
+      return;
+    }
     renderRows(foods.filter(f => {
-      const name = getFoodDisplayName(f, currentLang).toLowerCase();
-      return name.includes(q);
+      const n = (f.name || '').toLowerCase();
+      const nuk = (f.name_uk || '').toLowerCase();
+      const nen = (f.name_en || '').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q);
     }));
   });
 
@@ -246,14 +255,14 @@ export async function renderFoodDb(container) {
     const id = foodIdInput.value ? Number(foodIdInput.value) : null;
     const nameUk = foodNameUkInput.value.trim();
     const nameEn = foodNameEnInput.value.trim() || nameUk;
-    const cal = parseFloat(foodCalInput.value) || 0;
-    const pro = parseFloat(foodProInput.value) || 0;
-    const carb = parseFloat(foodCarbInput.value) || 0;
-    const fat = parseFloat(foodFatInput.value) || 0;
-    const satFat = parseFloat(foodSatFatInput.value) || 0;
-    const fib = parseFloat(foodFibInput.value) || 0;
-    const salt = parseFloat(foodSaltInput.value) || 0;
-    const sug = parseFloat(foodSugInput.value) || 0;
+    const cal = Math.max(0, parseFloat(foodCalInput.value) || 0);
+    const pro = Math.max(0, parseFloat(foodProInput.value) || 0);
+    const carb = Math.max(0, parseFloat(foodCarbInput.value) || 0);
+    const fat = Math.max(0, parseFloat(foodFatInput.value) || 0);
+    const satFat = Math.max(0, parseFloat(foodSatFatInput.value) || 0);
+    const fib = Math.max(0, parseFloat(foodFibInput.value) || 0);
+    const salt = Math.max(0, parseFloat(foodSaltInput.value) || 0);
+    const sug = Math.max(0, parseFloat(foodSugInput.value) || 0);
 
     if (id) {
       // update existing

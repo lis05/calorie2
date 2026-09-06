@@ -130,6 +130,9 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
   }
 
   function openGramsModal(food) {
+    document.querySelectorAll('#app > #grams-modal').forEach(el => {
+      if (el !== modal) el.remove();
+    });
     if (modal && modal.parentElement !== document.getElementById('app')) {
       document.getElementById('app').appendChild(modal);
     }
@@ -169,13 +172,20 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       document.activeElement.blur();
     }
     if (!selectedFood) return;
-    const g = parseFloat(gramsInput.value) || 0;
+    const g = Math.max(0, parseFloat(gramsInput.value) || 0);
     if (g <= 0) return;
 
     const factor = g / 100;
     const dateStr = toLocalDateString(currentDate);
     const foodName = getFoodDisplayName(selectedFood, currentLang);
-    const sf = selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0);
+    const sf = Number(selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0)) || 0;
+    const cal = Number(selectedFood.calories) || 0;
+    const pro = Number(selectedFood.protein) || 0;
+    const carb = Number(selectedFood.carbs) || 0;
+    const fat = Number(selectedFood.fats) || 0;
+    const fib = Number(selectedFood.fiber) || 0;
+    const salt = Number(selectedFood.salt) || 0;
+    const sug = Number(selectedFood.sugar) || 0;
 
     await addMeal({
       date: dateStr,
@@ -183,14 +193,14 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       food_id: selectedFood.id,
       food_name: foodName,
       amount_g: g,
-      calories: (selectedFood.calories || 0) * factor,
-      protein: Math.round((selectedFood.protein || 0) * factor * 10) / 10,
-      carbs: Math.round((selectedFood.carbs || 0) * factor * 10) / 10,
-      fats: Math.round((selectedFood.fats || 0) * factor * 10) / 10,
+      calories: cal * factor,
+      protein: Math.round(pro * factor * 10) / 10,
+      carbs: Math.round(carb * factor * 10) / 10,
+      fats: Math.round(fat * factor * 10) / 10,
       saturated_fats: Math.round(sf * factor * 10) / 10,
-      fiber: Math.round((selectedFood.fiber || 0) * factor * 10) / 10,
-      salt: Math.round((selectedFood.salt || 0) * factor * 10000) / 10000,
-      sugar: Math.round((selectedFood.sugar || 0) * factor * 10) / 10,
+      fiber: Math.round(fib * factor * 10) / 10,
+      salt: Math.round(salt * factor * 10000) / 10000,
+      sugar: Math.round(sug * factor * 10) / 10,
       created_at: new Date().toISOString()
     });
 
@@ -281,9 +291,15 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
   searchInput.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase().trim();
+    if (!q) {
+      renderList(allFoods);
+      return;
+    }
     renderList(allFoods.filter(f => {
-      const name = getFoodDisplayName(f, currentLang).toLowerCase();
-      return name.includes(q);
+      const n = (f.name || '').toLowerCase();
+      const nuk = (f.name_uk || '').toLowerCase();
+      const nen = (f.name_en || '').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q);
     }));
   });
 

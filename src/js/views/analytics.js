@@ -2,14 +2,14 @@ import { t, getLanguage } from '../i18n.js';
 import { getMealsByDateRange, getTargetsForDate, toLocalDateString } from '../db.js';
 
 const METRICS = [
-  { id: 'calories',       labelKey: 'calories_label',       unit: 'kcal', color: 'var(--stat-cal)' },
-  { id: 'protein',        labelKey: 'protein',              unit: '',     color: 'var(--stat-pro)' },
-  { id: 'fats',           labelKey: 'fats',                 unit: '',     color: 'var(--stat-fat)' },
-  { id: 'saturated_fats', labelKey: 'saturated_fats_short', unit: '',     color: 'var(--stat-fat)' },
-  { id: 'carbs',          labelKey: 'carbs',                unit: '',     color: 'var(--stat-carb)' },
-  { id: 'sugar',          labelKey: 'sugar',                unit: '',     color: 'var(--stat-carb)' },
-  { id: 'fiber',          labelKey: 'fiber',                unit: '',     color: 'var(--stat-fib)' },
-  { id: 'salt',           labelKey: 'salt',                 unit: '',     color: 'var(--stat-salt)' }
+  { id: 'calories',       labelKey: 'calories_label',       unitKey: 'kcal',   color: 'var(--stat-cal)' },
+  { id: 'protein',        labelKey: 'protein',              unitKey: 'unit_g', color: 'var(--stat-pro)' },
+  { id: 'fats',           labelKey: 'fats',                 unitKey: 'unit_g', color: 'var(--stat-fat)' },
+  { id: 'saturated_fats', labelKey: 'saturated_fats_short', unitKey: 'unit_g', color: 'var(--stat-sat-fat)' },
+  { id: 'carbs',          labelKey: 'carbs',                unitKey: 'unit_g', color: 'var(--stat-carb)' },
+  { id: 'sugar',          labelKey: 'sugar',                unitKey: 'unit_g', color: 'var(--stat-sug)' },
+  { id: 'fiber',          labelKey: 'fiber',                unitKey: 'unit_g', color: 'var(--stat-fib)' },
+  { id: 'salt',           labelKey: 'salt',                 unitKey: 'unit_g', color: 'var(--stat-salt)' }
 ];
 
 let selectedMetricId = 'calories';
@@ -72,9 +72,10 @@ async function loadAndDisplayChart(container) {
   if (!chartContainer || !statsGrid) return;
 
   const activeMetric = METRICS.find(m => m.id === selectedMetricId) || METRICS[0];
+  const unit = t(activeMetric.unitKey);
   const metricCleanName = t(activeMetric.labelKey);
   if (metricTitleEl) {
-    metricTitleEl.textContent = activeMetric.unit ? `${metricCleanName} (${activeMetric.unit})` : metricCleanName;
+    metricTitleEl.textContent = `${metricCleanName} (${unit})`;
   }
 
   // Calculate 7-day dates: 6 days ago -> today
@@ -122,7 +123,7 @@ async function loadAndDisplayChart(container) {
 
   if (metricTargetEl) {
     const targetDisplayVal = activeMetric.id === 'salt' ? (Math.round(targetVal * 10000) / 10000) : Math.round(targetVal);
-    metricTargetEl.textContent = targetVal > 0 ? `${t('goal')}: ${targetDisplayVal}${activeMetric.unit ? ' ' + activeMetric.unit : ''}` : '';
+    metricTargetEl.textContent = targetVal > 0 ? `${t('goal')}: ${targetDisplayVal} ${unit}` : '';
   }
 
   // Find max value to normalize bar heights
@@ -153,7 +154,7 @@ async function loadAndDisplayChart(container) {
         const barBg = isOverTarget ? 'var(--accent-danger, #ef4444)' : activeMetric.color;
 
         return `
-          <div class="chart-col ${isToday ? 'today' : ''}" title="${dateStr}: ${roundedVal}${activeMetric.unit ? ' ' + activeMetric.unit : ''}">
+          <div class="chart-col ${isToday ? 'today' : ''}" title="${dateStr}: ${roundedVal} ${unit}">
             <span class="chart-bar-val">${val > 0 ? roundedVal : '0'}</span>
             <div class="chart-bar" style="height: ${heightPct}%; background-color: ${barBg};"></div>
           </div>
@@ -194,7 +195,7 @@ async function loadAndDisplayChart(container) {
     lowest = Math.round(Math.min(...values) * 10) / 10;
   }
 
-  const unitSpan = activeMetric.unit ? ` <span style="font-size:0.75rem;">${activeMetric.unit}</span>` : '';
+  const unitSpan = ` <span style="font-size:0.75rem;">${unit}</span>`;
 
   statsGrid.innerHTML = `
     <div class="stat-box" style="text-align:center; padding:10px 4px;">

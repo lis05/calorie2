@@ -105,14 +105,14 @@ export async function renderSettings(container, onLanguageChanged) {
   const targetsForm = container.querySelector('#targets-form');
   targetsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const c = Number(container.querySelector('#set-target-cal').value);
-    const p = Number(container.querySelector('#set-target-pro').value);
-    const cb = Number(container.querySelector('#set-target-carb').value);
-    const f = Number(container.querySelector('#set-target-fat').value);
-    const sf = Number(container.querySelector('#set-target-sat-fat').value);
-    const fb = Number(container.querySelector('#set-target-fib').value);
-    const sl = Number(container.querySelector('#set-target-salt').value);
-    const sg = Number(container.querySelector('#set-target-sug').value);
+    const c = Math.max(0, parseFloat(container.querySelector('#set-target-cal').value) || 0);
+    const p = Math.max(0, parseFloat(container.querySelector('#set-target-pro').value) || 0);
+    const cb = Math.max(0, parseFloat(container.querySelector('#set-target-carb').value) || 0);
+    const f = Math.max(0, parseFloat(container.querySelector('#set-target-fat').value) || 0);
+    const sf = Math.max(0, parseFloat(container.querySelector('#set-target-sat-fat').value) || 0);
+    const fb = Math.max(0, parseFloat(container.querySelector('#set-target-fib').value) || 0);
+    const sl = Math.max(0, parseFloat(container.querySelector('#set-target-salt').value) || 0);
+    const sg = Math.max(0, parseFloat(container.querySelector('#set-target-sug').value) || 0);
 
     const todayStr = toLocalDateString(new Date());
     await saveDailyTargets({
@@ -243,9 +243,11 @@ export async function renderSettings(container, onLanguageChanged) {
       const parsed = JSON.parse(text);
       await importAllData(parsed);
       alert(t('data_imported'));
+      importInput.value = '';
       onLanguageChanged();
     } catch (err) {
       alert(t('import_error') + ': ' + err.message);
+      importInput.value = '';
     }
   });
 
@@ -253,7 +255,7 @@ export async function renderSettings(container, onLanguageChanged) {
   container.querySelector('#btn-clear-data').addEventListener('click', async () => {
     if (confirm(t('confirm_clear_all'))) {
       await clearAllData();
-      alert('Data cleared.');
+      alert(t('data_cleared'));
       onLanguageChanged();
     }
   });

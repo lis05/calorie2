@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calorie2-v2';
+const CACHE_NAME = 'calorie2-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -19,6 +19,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  // Do not cache runtime version checks
+  if (url.pathname.endsWith('/version.json') || url.pathname.endsWith('version.json')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // Network-first strategy: fetch newest version when online, fallback to cache when offline
   event.respondWith(
     fetch(event.request)
@@ -36,7 +43,9 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request).then((cached) => {
           if (cached) return cached;
           if (event.request.mode === 'navigate') {
-            return caches.match('./') || caches.match('index.html');
+            return caches.match('./')
+              .then(res => res || caches.match('index.html'))
+              .then(res => res || caches.match('./index.html'));
           }
         });
       })

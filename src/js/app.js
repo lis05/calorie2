@@ -149,6 +149,8 @@ function renderCurrentView() {
   const container = document.getElementById('view-content');
   if (!container) return;
 
+  document.querySelectorAll('#app > .modal-overlay').forEach(el => el.remove());
+
   if (currentTab === 'dashboard') {
     renderDashboard(container, currentDate, () => updateDateDisplay(), () => switchTab('logMeal'));
   } else if (currentTab === 'analytics') {

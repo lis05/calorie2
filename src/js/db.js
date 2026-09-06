@@ -62,53 +62,69 @@ export function openDB() {
 async function seedDefaultsIfEmpty(db) {
   const count = await getFoodCount(db);
   if (count === 0) {
-    const tx = db.transaction(['foods'], 'readwrite');
-    const store = tx.objectStore('foods');
-    for (const food of defaultFoods) {
-      store.add(food);
-    }
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(['foods'], 'readwrite');
+      const store = tx.objectStore('foods');
+      for (const food of defaultFoods) {
+        store.add({ ...food });
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   } else {
-    // Backfill name_en and name_uk on existing stored foods
-    const tx = db.transaction(['foods'], 'readwrite');
-    const store = tx.objectStore('foods');
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const items = req.result || [];
-      for (const f of items) {
-        if (!f.name_en) {
-          const match = defaultFoods.find(df => df.name_uk === f.name || df.name === f.name);
+    // Backfill name_en, name_uk, saturated_fats, salt, sugar on existing stored foods
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(['foods'], 'readwrite');
+      const store = tx.objectStore('foods');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result || [];
+        for (const f of items) {
+          const match = defaultFoods.find(df => df.name_uk === f.name || df.name === f.name || df.name_uk === f.name_uk || (df.name_en && df.name_en === f.name_en));
+          let changed = false;
           if (match) {
-            f.name_uk = match.name_uk;
-            f.name_en = match.name_en;
-            if (f.salt === undefined) f.salt = match.salt;
-            if (f.sugar === undefined) f.sugar = match.sugar;
+            if (!f.name_uk) { f.name_uk = match.name_uk; changed = true; }
+            if (!f.name_en) { f.name_en = match.name_en; changed = true; }
+            if (f.saturated_fats === undefined) { f.saturated_fats = match.saturated_fats !== undefined ? match.saturated_fats : (match.sat_fat || 0); changed = true; }
+            if (f.salt === undefined) { f.salt = match.salt !== undefined ? match.salt : 0; changed = true; }
+            if (f.sugar === undefined) { f.sugar = match.sugar !== undefined ? match.sugar : 0; changed = true; }
+          } else {
+            if (f.saturated_fats === undefined && f.sat_fat !== undefined) { f.saturated_fats = f.sat_fat; changed = true; }
+          }
+          if (changed) {
             store.put(f);
           }
         }
-      }
-    };
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   // Default targets baseline (applies from dawn of time until user modifies)
-  const txTargets = db.transaction(['daily_targets'], 'readwrite');
-  const targetStore = txTargets.objectStore('daily_targets');
-  const targetCountReq = targetStore.count();
-  targetCountReq.onsuccess = () => {
-    if (targetCountReq.result === 0) {
-      targetStore.add({
-        start_date: "1970-01-01",
-        created_at: new Date().toISOString(),
-        calories: 2000,
-        protein: 90,
-        carbs: 220,
-        fats: 65,
-        saturated_fats: 20,
-        fiber: 30,
-        salt: 5,
-        sugar: 40
-      });
-    }
-  };
+  await new Promise((resolve, reject) => {
+    const txTargets = db.transaction(['daily_targets'], 'readwrite');
+    const targetStore = txTargets.objectStore('daily_targets');
+    const targetCountReq = targetStore.count();
+    targetCountReq.onsuccess = () => {
+      if (targetCountReq.result === 0) {
+        targetStore.add({
+          start_date: "1970-01-01",
+          created_at: new Date().toISOString(),
+          calories: 2000,
+          protein: 90,
+          carbs: 220,
+          fats: 65,
+          saturated_fats: 20,
+          fiber: 30,
+          salt: 5,
+          sugar: 40
+        });
+      }
+    };
+    txTargets.oncomplete = () => resolve();
+    txTargets.onerror = () => reject(txTargets.error);
+  });
 }
 
 function getFoodCount(db) {
@@ -147,7 +163,12 @@ export async function searchFoods(query) {
   const all = await getAllFoods();
   if (!query || !query.trim()) return all;
   const q = query.toLowerCase().trim();
-  return all.filter(f => f.name.toLowerCase().includes(q));
+  return all.filter(f => {
+    const n = (f.name || '').toLowerCase();
+    const nuk = (f.name_uk || '').toLowerCase();
+    const nen = (f.name_en || '').toLowerCase();
+    return n.includes(q) || nuk.includes(q) || nen.includes(q);
+  });
 }
 
 export async function addFood(food) {
@@ -301,6 +322,8 @@ export async function getTargetsForDate(dateStr) {
         if (t.saturated_fats === undefined) {
           t.saturated_fats = t.sat_fat !== undefined ? t.sat_fat : 20;
         }
+        if (t.salt === undefined) t.salt = 5;
+        if (t.sugar === undefined) t.sugar = 40;
         resolve(t);
       } else if (all.length > 0) {
         // If target date is before the earliest custom target, return the earliest target
@@ -309,6 +332,8 @@ export async function getTargetsForDate(dateStr) {
         if (t.saturated_fats === undefined) {
           t.saturated_fats = t.sat_fat !== undefined ? t.sat_fat : 20;
         }
+        if (t.salt === undefined) t.salt = 5;
+        if (t.sugar === undefined) t.sugar = 40;
         resolve(t);
       } else {
         // Fallback default targets
@@ -380,51 +405,67 @@ export async function exportAllData() {
 
 export async function importAllData(data) {
   const db = await openDB();
+  const storesToUse = [];
+  if (data.foods && Array.isArray(data.foods)) storesToUse.push('foods');
+  if (data.meals && Array.isArray(data.meals)) storesToUse.push('meals');
+  if (data.settings && Array.isArray(data.settings)) storesToUse.push('settings');
+  if (data.daily_targets && Array.isArray(data.daily_targets)) storesToUse.push('daily_targets');
 
-  if (data.foods && Array.isArray(data.foods)) {
-    const tx = db.transaction(['foods'], 'readwrite');
-    const store = tx.objectStore('foods');
-    store.clear();
-    for (const f of data.foods) {
-      delete f.id;
-      store.add(f);
-    }
-  }
+  if (storesToUse.length === 0) return;
 
-  if (data.meals && Array.isArray(data.meals)) {
-    const tx = db.transaction(['meals'], 'readwrite');
-    const store = tx.objectStore('meals');
-    store.clear();
-    for (const m of data.meals) {
-      delete m.id;
-      store.add(m);
-    }
-  }
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(storesToUse, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
 
-  if (data.settings && Array.isArray(data.settings)) {
-    const tx = db.transaction(['settings'], 'readwrite');
-    const store = tx.objectStore('settings');
-    for (const s of data.settings) {
-      store.put(s);
+    if (data.foods && Array.isArray(data.foods)) {
+      const store = tx.objectStore('foods');
+      store.clear();
+      for (const f of data.foods) {
+        const item = { ...f };
+        delete item.id;
+        store.add(item);
+      }
     }
-  }
 
-  if (data.daily_targets && Array.isArray(data.daily_targets)) {
-    const tx = db.transaction(['daily_targets'], 'readwrite');
-    const store = tx.objectStore('daily_targets');
-    store.clear();
-    for (const dt of data.daily_targets) {
-      delete dt.id;
-      store.add(dt);
+    if (data.meals && Array.isArray(data.meals)) {
+      const store = tx.objectStore('meals');
+      store.clear();
+      for (const m of data.meals) {
+        const item = { ...m };
+        delete item.id;
+        store.add(item);
+      }
     }
-  }
+
+    if (data.settings && Array.isArray(data.settings)) {
+      const store = tx.objectStore('settings');
+      for (const s of data.settings) {
+        store.put({ ...s });
+      }
+    }
+
+    if (data.daily_targets && Array.isArray(data.daily_targets)) {
+      const store = tx.objectStore('daily_targets');
+      store.clear();
+      for (const dt of data.daily_targets) {
+        const item = { ...dt };
+        delete item.id;
+        store.add(item);
+      }
+    }
+  });
 }
 
 export async function clearAllData() {
   const db = await openDB();
-  const tx = db.transaction(['foods', 'meals', 'daily_targets'], 'readwrite');
-  tx.objectStore('foods').clear();
-  tx.objectStore('meals').clear();
-  tx.objectStore('daily_targets').clear();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(['foods', 'meals', 'daily_targets'], 'readwrite');
+    tx.objectStore('foods').clear();
+    tx.objectStore('meals').clear();
+    tx.objectStore('daily_targets').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
   await seedDefaultsIfEmpty(db);
 }

@@ -258,34 +258,47 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
 
   function updateEditPreview() {
     if (!activeEditingMeal) return;
-    const g = parseFloat(editGramsInput.value) || 0;
+    const g = Math.max(0, parseFloat(editGramsInput.value) || 0);
     let per100 = activeBaseFood;
     if (!per100) {
-      const origG = activeEditingMeal.amount_g || 100;
+      const origG = (activeEditingMeal.amount_g > 0) ? activeEditingMeal.amount_g : 100;
+      const mCal = Number(activeEditingMeal.calories) || 0;
+      const mPro = Number(activeEditingMeal.protein) || 0;
+      const mCarb = Number(activeEditingMeal.carbs) || 0;
+      const mFat = Number(activeEditingMeal.fats) || 0;
+      const mSatFat = Number(activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) || 0;
+      const mFib = Number(activeEditingMeal.fiber) || 0;
+      const mSalt = Number(activeEditingMeal.salt) || 0;
+      const mSug = Number(activeEditingMeal.sugar) || 0;
+
       per100 = {
-        calories: (activeEditingMeal.calories / origG) * 100,
-        protein: (activeEditingMeal.protein / origG) * 100,
-        carbs: (activeEditingMeal.carbs / origG) * 100,
-        fats: (activeEditingMeal.fats / origG) * 100,
-        saturated_fats: ((activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) / origG) * 100,
-        fiber: (activeEditingMeal.fiber / origG) * 100,
-        salt: (activeEditingMeal.salt / origG) * 100,
-        sugar: (activeEditingMeal.sugar / origG) * 100
+        calories: (mCal / origG) * 100,
+        protein: (mPro / origG) * 100,
+        carbs: (mCarb / origG) * 100,
+        fats: (mFat / origG) * 100,
+        saturated_fats: (mSatFat / origG) * 100,
+        fiber: (mFib / origG) * 100,
+        salt: (mSalt / origG) * 100,
+        sugar: (mSug / origG) * 100
       };
     }
 
     const factor = g / 100;
-    epCal.textContent = `${Math.round((per100.calories || 0) * factor)} ${t('kcal')}`;
-    epPro.textContent = `${Math.round((per100.protein || 0) * factor * 10) / 10}`;
-    epCarb.textContent = `${Math.round((per100.carbs || 0) * factor * 10) / 10}`;
-    epFat.textContent = `${Math.round((per100.fats || 0) * factor * 10) / 10}`;
-    epSatFat.textContent = `${Math.round((per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0)) * factor * 10) / 10}`;
-    epFib.textContent = `${Math.round((per100.fiber || 0) * factor * 10) / 10}`;
-    epSalt.textContent = `${Math.round((per100.salt || 0) * factor * 10000) / 10000}`;
-    epSug.textContent = `${Math.round((per100.sugar || 0) * factor * 10) / 10}`;
+    const sf = per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0);
+    epCal.textContent = `${Math.round((Number(per100.calories) || 0) * factor)} ${t('kcal')}`;
+    epPro.textContent = `${Math.round((Number(per100.protein) || 0) * factor * 10) / 10}`;
+    epCarb.textContent = `${Math.round((Number(per100.carbs) || 0) * factor * 10) / 10}`;
+    epFat.textContent = `${Math.round((Number(per100.fats) || 0) * factor * 10) / 10}`;
+    epSatFat.textContent = `${Math.round((Number(sf) || 0) * factor * 10) / 10}`;
+    epFib.textContent = `${Math.round((Number(per100.fiber) || 0) * factor * 10) / 10}`;
+    epSalt.textContent = `${Math.round((Number(per100.salt) || 0) * factor * 10000) / 10000}`;
+    epSug.textContent = `${Math.round((Number(per100.sugar) || 0) * factor * 10) / 10}`;
   }
 
   async function openEditModal(meal) {
+    document.querySelectorAll('#app > #edit-meal-modal').forEach(el => {
+      if (el !== editModal) el.remove();
+    });
     if (editModal && editModal.parentElement !== document.getElementById('app')) {
       document.getElementById('app').appendChild(editModal);
     }
@@ -331,34 +344,44 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       document.activeElement.blur();
     }
     if (!activeEditingMeal) return;
-    const g = parseFloat(editGramsInput.value) || 0;
+    const g = Math.max(0, parseFloat(editGramsInput.value) || 0);
     if (g <= 0) return;
 
     let per100 = activeBaseFood;
     if (!per100) {
-      const origG = activeEditingMeal.amount_g || 100;
+      const origG = (activeEditingMeal.amount_g > 0) ? activeEditingMeal.amount_g : 100;
+      const mCal = Number(activeEditingMeal.calories) || 0;
+      const mPro = Number(activeEditingMeal.protein) || 0;
+      const mCarb = Number(activeEditingMeal.carbs) || 0;
+      const mFat = Number(activeEditingMeal.fats) || 0;
+      const mSatFat = Number(activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) || 0;
+      const mFib = Number(activeEditingMeal.fiber) || 0;
+      const mSalt = Number(activeEditingMeal.salt) || 0;
+      const mSug = Number(activeEditingMeal.sugar) || 0;
+
       per100 = {
-        calories: (activeEditingMeal.calories / origG) * 100,
-        protein: (activeEditingMeal.protein / origG) * 100,
-        carbs: (activeEditingMeal.carbs / origG) * 100,
-        fats: (activeEditingMeal.fats / origG) * 100,
-        saturated_fats: ((activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) / origG) * 100,
-        fiber: (activeEditingMeal.fiber / origG) * 100,
-        salt: (activeEditingMeal.salt / origG) * 100,
-        sugar: (activeEditingMeal.sugar / origG) * 100
+        calories: (mCal / origG) * 100,
+        protein: (mPro / origG) * 100,
+        carbs: (mCarb / origG) * 100,
+        fats: (mFat / origG) * 100,
+        saturated_fats: (mSatFat / origG) * 100,
+        fiber: (mFib / origG) * 100,
+        salt: (mSalt / origG) * 100,
+        sugar: (mSug / origG) * 100
       };
     }
 
     const factor = g / 100;
+    const sf = per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0);
     activeEditingMeal.amount_g = g;
-    activeEditingMeal.calories = (per100.calories || 0) * factor;
-    activeEditingMeal.protein = Math.round((per100.protein || 0) * factor * 10) / 10;
-    activeEditingMeal.carbs = Math.round((per100.carbs || 0) * factor * 10) / 10;
-    activeEditingMeal.fats = Math.round((per100.fats || 0) * factor * 10) / 10;
-    activeEditingMeal.saturated_fats = Math.round((per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0)) * factor * 10) / 10;
-    activeEditingMeal.fiber = Math.round((per100.fiber || 0) * factor * 10) / 10;
-    activeEditingMeal.salt = Math.round((per100.salt || 0) * factor * 10000) / 10000;
-    activeEditingMeal.sugar = Math.round((per100.sugar || 0) * factor * 10) / 10;
+    activeEditingMeal.calories = (Number(per100.calories) || 0) * factor;
+    activeEditingMeal.protein = Math.round((Number(per100.protein) || 0) * factor * 10) / 10;
+    activeEditingMeal.carbs = Math.round((Number(per100.carbs) || 0) * factor * 10) / 10;
+    activeEditingMeal.fats = Math.round((Number(per100.fats) || 0) * factor * 10) / 10;
+    activeEditingMeal.saturated_fats = Math.round((Number(sf) || 0) * factor * 10) / 10;
+    activeEditingMeal.fiber = Math.round((Number(per100.fiber) || 0) * factor * 10) / 10;
+    activeEditingMeal.salt = Math.round((Number(per100.salt) || 0) * factor * 10000) / 10000;
+    activeEditingMeal.sugar = Math.round((Number(per100.sugar) || 0) * factor * 10) / 10;
 
     await updateMeal(activeEditingMeal);
     closeEditModal();
