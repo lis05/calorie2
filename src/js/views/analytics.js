@@ -113,7 +113,13 @@ async function loadAndDisplayChart(container) {
 
   // Fetch latest daily target for current metric
   const targets = await getTargetsForDate(endDateStr);
-  const targetVal = Number(targets[selectedMetricId]) || 0;
+  let targetVal = 0;
+  if (selectedMetricId === 'saturated_fats') {
+    targetVal = Number(targets.saturated_fats !== undefined ? targets.saturated_fats : (targets.sat_fat !== undefined ? targets.sat_fat : 20)) || 20;
+  } else {
+    targetVal = Number(targets[selectedMetricId]) || 0;
+  }
+
   if (metricTargetEl) {
     const targetDisplayVal = activeMetric.id === 'salt' ? (Math.round(targetVal * 10000) / 10000) : Math.round(targetVal);
     metricTargetEl.textContent = targetVal > 0 ? `${t('goal')}: ${targetDisplayVal}${activeMetric.unit ? ' ' + activeMetric.unit : ''}` : '';

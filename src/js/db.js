@@ -297,11 +297,19 @@ export async function getTargetsForDate(dateStr) {
                        .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
 
       if (valid.length > 0) {
-        resolve(valid[valid.length - 1]);
+        const t = { ...valid[valid.length - 1] };
+        if (t.saturated_fats === undefined) {
+          t.saturated_fats = t.sat_fat !== undefined ? t.sat_fat : 20;
+        }
+        resolve(t);
       } else if (all.length > 0) {
         // If target date is before the earliest custom target, return the earliest target
         const sorted = all.sort((a, b) => a.start_date.localeCompare(b.start_date));
-        resolve(sorted[0]);
+        const t = { ...sorted[0] };
+        if (t.saturated_fats === undefined) {
+          t.saturated_fats = t.sat_fat !== undefined ? t.sat_fat : 20;
+        }
+        resolve(t);
       } else {
         // Fallback default targets
         resolve({
