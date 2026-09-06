@@ -80,6 +80,9 @@ export async function renderSettings(container, onLanguageChanged) {
     <div class="card">
       <h3 style="font-size:1rem; font-weight:700; margin-bottom:12px;">${t('data_management')}</h3>
       <div style="display:flex; flex-direction:column; gap:10px;">
+        <button id="btn-force-update" class="btn-secondary" style="border-color:var(--accent-secondary); color:var(--accent-secondary); font-weight:600;">
+          🔄 ${t('check_updates')}
+        </button>
         <button id="btn-export" class="btn-secondary">📥 ${t('export_data')}</button>
         <button id="btn-import-trigger" class="btn-secondary">📤 ${t('import_data')}</button>
         <input type="file" id="file-import-input" accept=".json" style="display:none;" />
@@ -132,6 +135,30 @@ export async function renderSettings(container, onLanguageChanged) {
     localStorage.setItem('calorie2_theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   });
+
+  // Force update / clear cache
+  const forceUpdateBtn = container.querySelector('#btn-force-update');
+  if (forceUpdateBtn) {
+    forceUpdateBtn.addEventListener('click', async () => {
+      forceUpdateBtn.disabled = true;
+      forceUpdateBtn.textContent = '⏳ ' + t('updating');
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+          }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch (err) {
+        console.error('Update error:', err);
+      }
+      window.location.reload(true);
+    });
+  }
 
   // Export JSON
   container.querySelector('#btn-export').addEventListener('click', async () => {
