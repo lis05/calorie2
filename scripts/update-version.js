@@ -4,6 +4,7 @@ import fs from 'fs';
 try {
   const version = execSync('git log -1 --format=%cd-%h --date=format:%Y-%m-%d').toString().trim();
   fs.writeFileSync('src/js/version.js', `export const APP_VERSION = '${version}';\n`);
+  fs.writeFileSync('public/version.json', JSON.stringify({ version }, null, 2) + '\n');
   console.log('Updated version to:', version);
 } catch (e) {
   console.error('Failed to update version:', e.message);

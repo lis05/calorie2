@@ -93,8 +93,11 @@ export async function renderSettings(container, onLanguageChanged) {
       </div>
     </div>
 
-    <div style="text-align:center; padding: 4px 0 20px; font-size: 0.8rem; color: var(--text-faint);">
-      ${t('version')}: <span style="font-family: monospace; font-weight:700; color: var(--text-muted);">${APP_VERSION}</span>
+    <div style="text-align:center; padding: 4px 0 20px; font-size: 0.8rem; color: var(--text-faint); display:flex; justify-content:center; align-items:center; gap:6px; flex-wrap:wrap;">
+      <span>${t('version')}: <span style="font-family: monospace; font-weight:700; color: var(--text-muted);">${APP_VERSION}</span></span>
+      <span id="version-status-badge" style="font-size:0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; background: var(--surface-hover); color: var(--text-muted);">
+        ${t('version_checking')}
+      </span>
     </div>
   `;
 
@@ -165,6 +168,48 @@ export async function renderSettings(container, onLanguageChanged) {
       const cleanUrl = window.location.href.split('?')[0].split('#')[0];
       window.location.replace(cleanUrl + '?t=' + Date.now());
     });
+  }
+
+  // Runtime version check against server version.json
+  const statusBadge = container.querySelector('#version-status-badge');
+  if (statusBadge) {
+    (async () => {
+      try {
+        const res = await fetch(`./version.json?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!res.ok) throw new Error('Status ' + res.status);
+        const remote = await res.json();
+        if (remote && remote.version) {
+          if (remote.version === APP_VERSION) {
+            statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            statusBadge.style.color = 'var(--accent-primary)';
+            statusBadge.textContent = '✓ ' + t('version_latest');
+          } else {
+            statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+            statusBadge.style.color = 'var(--accent-danger)';
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.textContent = '⚠️ ' + t('version_outdated');
+            statusBadge.title = `${t('check_updates')}: ${remote.version}`;
+
+            if (forceUpdateBtn) {
+              forceUpdateBtn.style.borderColor = 'var(--accent-danger)';
+              forceUpdateBtn.style.color = 'var(--accent-danger)';
+              forceUpdateBtn.textContent = `🔄 ${t('check_updates')} (${t('version_outdated')})`;
+            }
+
+            statusBadge.addEventListener('click', () => {
+              if (forceUpdateBtn) forceUpdateBtn.click();
+            });
+          }
+        } else {
+          statusBadge.remove();
+        }
+      } catch (err) {
+        statusBadge.remove();
+      }
+    })();
   }
 
   // Export JSON

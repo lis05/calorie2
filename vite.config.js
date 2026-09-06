@@ -15,6 +15,7 @@ const appVersion = getVersion();
 
 try {
   fs.writeFileSync('src/js/version.js', `export const APP_VERSION = '${appVersion}';\n`);
+  fs.writeFileSync('public/version.json', JSON.stringify({ version: appVersion }, null, 2) + '\n');
 } catch (e) {}
 
 export default defineConfig({
