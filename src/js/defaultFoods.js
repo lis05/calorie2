@@ -121,7 +121,16 @@ export function getFoodDisplayName(food, lang = 'uk') {
     return reverseTranslations[food] || food;
   }
   if (lang === 'en') {
-    return food.name_en || foodTranslations[food.name_uk] || foodTranslations[food.name] || food.name || '';
+    return food.short_name_en || food.short_name || food.name_en || foodTranslations[food.name_uk] || foodTranslations[food.name] || food.name || '';
   }
-  return food.name_uk || reverseTranslations[food.name_en] || reverseTranslations[food.name] || food.name || '';
+  return food.short_name_uk || food.short_name || food.name_uk || reverseTranslations[food.name_en] || reverseTranslations[food.name] || food.name || '';
+}
+
+export function getFoodFullName(food, lang = 'uk') {
+  if (!food) return '';
+  if (typeof food === 'string') return food;
+  if (lang === 'en') {
+    return food.name_en || food.long_name || food.name || '';
+  }
+  return food.name_uk || food.long_name || food.name || '';
 }

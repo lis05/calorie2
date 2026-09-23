@@ -31,6 +31,10 @@ const translations = {
     food_name: "Назва продукту",
     food_name_uk: "Назва (Українською)",
     food_name_en: "Назва (Англійською)",
+    full_name: "Повна назва",
+    short_name: "Коротка назва",
+    long_name: "Довга назва",
+    ukr_name: "Назва (Українською)",
     category: "Категорія",
     meal_type: "Прийом їжі",
     breakfast: "Сніданок",
@@ -89,7 +93,19 @@ const translations = {
     stat_select: "Оберіть показник",
     avg_daily: "Середнє за день",
     highest_day: "Максимум",
-    lowest_day: "Мінімум"
+    lowest_day: "Мінімум",
+    weight: "Вага",
+    unit_kg: "кг",
+    daily_weight: "Вага за день",
+    enter_weight: "Введіть вагу",
+    clear: "Очистити",
+    no_weight_logged: "Не записано",
+    weight_trend: "Динаміка ваги",
+    last_months: "Останні місяці",
+    weight_change: "Зміна",
+    first_logged: "Початок",
+    latest_logged: "Зараз",
+    no_weight_data_range: "Немає записів ваги за цей період"
   },
   en: {
     app_title: "Calorie",
@@ -123,6 +139,10 @@ const translations = {
     food_name: "Food Name",
     food_name_uk: "Name (Ukrainian)",
     food_name_en: "Name (English)",
+    full_name: "Full Name",
+    short_name: "Short Name",
+    long_name: "Long Name",
+    ukr_name: "Ukr Name",
     category: "Category",
     meal_type: "Meal Type",
     breakfast: "Breakfast",
@@ -181,7 +201,19 @@ const translations = {
     stat_select: "Select Metric",
     avg_daily: "Daily Average",
     highest_day: "Highest",
-    lowest_day: "Lowest"
+    lowest_day: "Lowest",
+    weight: "Weight",
+    unit_kg: "kg",
+    daily_weight: "Daily Weight",
+    enter_weight: "Enter weight",
+    clear: "Clear",
+    no_weight_logged: "Not logged",
+    weight_trend: "Weight Trend",
+    last_months: "Last Months",
+    weight_change: "Change",
+    first_logged: "Start",
+    latest_logged: "Current",
+    no_weight_data_range: "No weight recorded for this period"
   }
 };
 

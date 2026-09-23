@@ -1,11 +1,12 @@
 import { t, getLanguage } from '../i18n.js';
-import { getMealsByDate, deleteMeal, updateMeal, getTargetsForDate, getFoodById, getAllFoods, toLocalDateString } from '../db.js';
+import { getMealsByDate, deleteMeal, updateMeal, getTargetsForDate, getFoodById, getAllFoods, toLocalDateString, getWeightByDate, saveWeight, deleteWeight } from '../db.js';
 import { getFoodDisplayName } from '../defaultFoods.js';
 
 export async function renderDashboard(container, currentDate, onDateChange, onNavigateToLog) {
   const currentLang = getLanguage();
   const dateStr = toLocalDateString(currentDate);
   const meals = await getMealsByDate(dateStr);
+  const currentWeight = await getWeightByDate(dateStr);
   const allFoods = await getAllFoods();
   const foodsMap = new Map(allFoods.map(f => [f.id, f]));
 
@@ -107,6 +108,32 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
         <div class="stat-value" style="color:var(--stat-salt)">${totalSalt}</div>
         <div class="stat-target">/ ${targetSalt}</div>
       </div>
+    </div>
+
+    <!-- Daily Weight Widget -->
+    <div class="card" style="padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem; line-height: 1;">⚖️</span>
+        <div>
+          <div style="font-size: 0.9rem; font-weight: 700;">${t('daily_weight')}</div>
+          <div id="weight-status-label" style="font-size: 0.75rem; color: var(--text-muted);">
+            ${currentWeight !== null ? `${currentWeight} ${t('unit_kg')}` : t('no_weight_logged')}
+          </div>
+        </div>
+      </div>
+      <form id="daily-weight-form" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+        <input type="number" id="daily-weight-input" class="form-input"
+          step="0.1" min="10" max="500" placeholder="--"
+          value="${currentWeight !== null ? currentWeight : ''}"
+          style="width: 75px; text-align: center; font-weight: 700; padding: 6px 4px; font-size: 0.95rem;" />
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">${t('unit_kg')}</span>
+        <button type="submit" id="save-weight-btn" class="btn-primary" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+          ${t('save')}
+        </button>
+        ${currentWeight !== null ? `
+          <button type="button" id="delete-weight-btn" class="btn-delete-item" title="${t('clear')}" style="padding: 4px 6px;">✕</button>
+        ` : ''}
+      </form>
     </div>
 
     <div class="section-header">
@@ -238,6 +265,37 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   `;
 
   // Listeners
+  const weightForm = container.querySelector('#daily-weight-form');
+  const weightInput = container.querySelector('#daily-weight-input');
+  const deleteWeightBtn = container.querySelector('#delete-weight-btn');
+
+  if (weightForm && weightInput) {
+    weightForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      weightInput.blur();
+      const val = weightInput.value.trim();
+      if (!val) {
+        await deleteWeight(dateStr);
+      } else {
+        const num = parseFloat(val);
+        if (isNaN(num) || num <= 0) {
+          await deleteWeight(dateStr);
+        } else {
+          await saveWeight(dateStr, num);
+        }
+      }
+      renderDashboard(container, currentDate, onDateChange, onNavigateToLog);
+    });
+  }
+
+  if (deleteWeightBtn) {
+    deleteWeightBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await deleteWeight(dateStr);
+      renderDashboard(container, currentDate, onDateChange, onNavigateToLog);
+    });
+  }
+
   const editModal = container.querySelector('#edit-meal-modal');
   const editTitle = container.querySelector('#edit-modal-title');
   const editGramsInput = container.querySelector('#edit-grams-input');

@@ -299,7 +299,11 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       const n = (f.name || '').toLowerCase();
       const nuk = (f.name_uk || '').toLowerCase();
       const nen = (f.name_en || '').toLowerCase();
-      return n.includes(q) || nuk.includes(q) || nen.includes(q);
+      const s = (f.short_name || '').toLowerCase();
+      const suk = (f.short_name_uk || '').toLowerCase();
+      const sen = (f.short_name_en || '').toLowerCase();
+      const l = (f.long_name || '').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
     }));
   });
 

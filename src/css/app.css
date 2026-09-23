@@ -604,6 +604,18 @@ input, button, select, textarea {
   border-color: currentColor;
 }
 
+.weight-range-btn.active {
+  background: var(--surface-hover) !important;
+  border-color: var(--accent-secondary) !important;
+  color: var(--accent-secondary) !important;
+  font-weight: 700;
+}
+
+.weight-chart-dot:hover {
+  r: 6 !important;
+  filter: drop-shadow(0 0 4px var(--accent-secondary));
+}
+
 .chart-container {
   display: flex;
   flex-direction: column;

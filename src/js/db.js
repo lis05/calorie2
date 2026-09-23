@@ -1,7 +1,7 @@
 import { defaultFoods } from './defaultFoods.js';
 
 const DB_NAME = 'Calorie2DB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let dbInstance = null;
 
@@ -44,6 +44,11 @@ export function openDB() {
       if (!db.objectStoreNames.contains('daily_targets')) {
         const targetStore = db.createObjectStore('daily_targets', { keyPath: 'id', autoIncrement: true });
         targetStore.createIndex('start_date', 'start_date', { unique: false });
+      }
+
+      // Daily Weights store: keyPath date
+      if (!db.objectStoreNames.contains('weights')) {
+        db.createObjectStore('weights', { keyPath: 'date' });
       }
     };
 
@@ -167,7 +172,11 @@ export async function searchFoods(query) {
     const n = (f.name || '').toLowerCase();
     const nuk = (f.name_uk || '').toLowerCase();
     const nen = (f.name_en || '').toLowerCase();
-    return n.includes(q) || nuk.includes(q) || nen.includes(q);
+    const s = (f.short_name || '').toLowerCase();
+    const suk = (f.short_name_uk || '').toLowerCase();
+    const sen = (f.short_name_en || '').toLowerCase();
+    const l = (f.long_name || '').toLowerCase();
+    return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
   });
 }
 
@@ -365,6 +374,63 @@ export async function getTargetsForDate(dateStr) {
   });
 }
 
+// Daily Weights CRUD
+export async function getWeightByDate(dateStr) {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(['weights'], 'readonly');
+    const store = tx.objectStore('weights');
+    const req = store.get(dateStr);
+    req.onsuccess = () => resolve(req.result ? req.result.weight : null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+export async function saveWeight(dateStr, weight) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['weights'], 'readwrite');
+    const store = tx.objectStore('weights');
+    if (weight === null || weight === undefined || weight === '' || isNaN(Number(weight)) || Number(weight) <= 0) {
+      const req = store.delete(dateStr);
+      req.onsuccess = () => resolve(null);
+      req.onerror = () => reject(req.error);
+    } else {
+      const record = {
+        date: dateStr,
+        weight: Math.round(Number(weight) * 10) / 10,
+        updated_at: new Date().toISOString()
+      };
+      const req = store.put(record);
+      req.onsuccess = () => resolve(record.weight);
+      req.onerror = () => reject(req.error);
+    }
+  });
+}
+
+export async function deleteWeight(dateStr) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['weights'], 'readwrite');
+    const store = tx.objectStore('weights');
+    const req = store.delete(dateStr);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getWeightsByDateRange(startDateStr, endDateStr) {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(['weights'], 'readonly');
+    const store = tx.objectStore('weights');
+    const range = IDBKeyRange.bound(startDateStr, endDateStr);
+    const req = store.getAll(range);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
 // Full Export / Import
 export async function exportAllData() {
   const db = await openDB();
@@ -393,13 +459,22 @@ export async function exportAllData() {
     req.onerror = () => resolve([]);
   });
 
+  const weights = await new Promise((resolve) => {
+    const tx = db.transaction(['weights'], 'readonly');
+    const store = tx.objectStore('weights');
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+
   return {
-    version: 3,
+    version: 4,
     exported_at: new Date().toISOString(),
     foods,
     meals,
     settings,
-    daily_targets
+    daily_targets,
+    weights
   };
 }
 
@@ -410,6 +485,7 @@ export async function importAllData(data) {
   if (data.meals && Array.isArray(data.meals)) storesToUse.push('meals');
   if (data.settings && Array.isArray(data.settings)) storesToUse.push('settings');
   if (data.daily_targets && Array.isArray(data.daily_targets)) storesToUse.push('daily_targets');
+  if (data.weights && Array.isArray(data.weights)) storesToUse.push('weights');
 
   if (storesToUse.length === 0) return;
 
@@ -454,16 +530,25 @@ export async function importAllData(data) {
         store.add(item);
       }
     }
+
+    if (data.weights && Array.isArray(data.weights)) {
+      const store = tx.objectStore('weights');
+      store.clear();
+      for (const w of data.weights) {
+        store.put({ ...w });
+      }
+    }
   });
 }
 
 export async function clearAllData() {
   const db = await openDB();
   await new Promise((resolve, reject) => {
-    const tx = db.transaction(['foods', 'meals', 'daily_targets'], 'readwrite');
+    const tx = db.transaction(['foods', 'meals', 'daily_targets', 'weights'], 'readwrite');
     tx.objectStore('foods').clear();
     tx.objectStore('meals').clear();
     tx.objectStore('daily_targets').clear();
+    tx.objectStore('weights').clear();
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

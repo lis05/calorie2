@@ -28,16 +28,33 @@ export async function renderFoodDb(container) {
 
         <form id="food-item-form">
           <input type="hidden" id="food-id" />
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">${t('food_name_uk')} *</label>
-              <input type="text" id="food-name-uk-input" class="form-input" placeholder="напр. Банан" required />
+          ${currentLang === 'en' ? `
+            <div class="form-group" style="margin-bottom:8px;">
+              <label class="form-label">${t('full_name')} *</label>
+              <input type="text" id="food-full-name-input" class="form-input" placeholder="e.g. Boiled chicken egg (1 pc ~50g)" required />
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">${t('food_name_en')}</label>
-              <input type="text" id="food-name-en-input" class="form-input" placeholder="e.g. Banana" />
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">${t('short_name')}</label>
+                <input type="text" id="food-short-name-input" class="form-input" placeholder="e.g. Boiled egg" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">${t('ukr_name')}</label>
+                <input type="text" id="food-ukr-name-input" class="form-input" placeholder="напр. Варене яйце" />
+              </div>
             </div>
-          </div>
+          ` : `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">${t('short_name')} *</label>
+                <input type="text" id="food-short-name-input" class="form-input" placeholder="напр. Банан" required />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">${t('long_name')} *</label>
+                <input type="text" id="food-long-name-input" class="form-input" placeholder="напр. Банан свіжий" required />
+              </div>
+            </div>
+          `}
 
           <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; font-weight:600;">
             ${t('per_100g')}:
@@ -93,8 +110,10 @@ export async function renderFoodDb(container) {
   const form = container.querySelector('#food-item-form');
 
   const foodIdInput = container.querySelector('#food-id');
-  const foodNameUkInput = container.querySelector('#food-name-uk-input');
-  const foodNameEnInput = container.querySelector('#food-name-en-input');
+  const foodFullNameInput = container.querySelector('#food-full-name-input');
+  const foodShortNameInput = container.querySelector('#food-short-name-input');
+  const foodUkrNameInput = container.querySelector('#food-ukr-name-input');
+  const foodLongNameInput = container.querySelector('#food-long-name-input');
   const foodCalInput = container.querySelector('#food-cal-input');
   const foodProInput = container.querySelector('#food-pro-input');
   const foodCarbInput = container.querySelector('#food-carb-input');
@@ -114,8 +133,14 @@ export async function renderFoodDb(container) {
     if (food) {
       modalTitle.textContent = `${t('edit')}: ${getFoodDisplayName(food, currentLang)}`;
       foodIdInput.value = food.id;
-      foodNameUkInput.value = food.name_uk || food.name || '';
-      foodNameEnInput.value = food.name_en || (currentLang === 'en' ? food.name : '');
+      if (currentLang === 'en') {
+        if (foodFullNameInput) foodFullNameInput.value = food.name_en || food.long_name || food.name || '';
+        if (foodShortNameInput) foodShortNameInput.value = food.short_name_en || food.short_name || '';
+        if (foodUkrNameInput) foodUkrNameInput.value = food.name_uk || food.short_name_uk || '';
+      } else {
+        if (foodShortNameInput) foodShortNameInput.value = food.short_name_uk || food.short_name || food.name_uk || food.name || '';
+        if (foodLongNameInput) foodLongNameInput.value = food.long_name || food.name_uk || food.name || '';
+      }
       foodCalInput.value = food.calories || 0;
       foodProInput.value = food.protein || 0;
       foodCarbInput.value = food.carbs || 0;
@@ -128,8 +153,10 @@ export async function renderFoodDb(container) {
       modalTitle.textContent = t('add_food');
       form.reset();
       foodIdInput.value = '';
-      foodNameUkInput.value = '';
-      foodNameEnInput.value = '';
+      if (foodFullNameInput) foodFullNameInput.value = '';
+      if (foodShortNameInput) foodShortNameInput.value = '';
+      if (foodUkrNameInput) foodUkrNameInput.value = '';
+      if (foodLongNameInput) foodLongNameInput.value = '';
       foodCalInput.value = '';
       foodProInput.value = '0';
       foodCarbInput.value = '0';
@@ -154,13 +181,15 @@ export async function renderFoodDb(container) {
 
     listContainer.innerHTML = items.map(f => {
       const displayName = getFoodDisplayName(f, currentLang);
+      const fullName = currentLang === 'en' ? (f.name_en || f.long_name || f.name) : (f.long_name || f.name_uk || f.name);
+      const showSubName = fullName && fullName !== displayName;
       return `
         <div class="food-card clickable" data-edit-id="${f.id}">
           <div class="food-card-header">
             <div style="flex:1;">
               <h4 class="food-card-title">${displayName}</h4>
               <div class="food-card-sub">
-                <span>${t('per_100g')} · <b style="color:var(--accent-secondary)">${t('edit')}</b></span>
+                <span>${showSubName ? `<span style="color:var(--text-muted);">${fullName} · </span>` : ''}${t('per_100g')} · <b style="color:var(--accent-secondary)">${t('edit')}</b></span>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -240,7 +269,11 @@ export async function renderFoodDb(container) {
       const n = (f.name || '').toLowerCase();
       const nuk = (f.name_uk || '').toLowerCase();
       const nen = (f.name_en || '').toLowerCase();
-      return n.includes(q) || nuk.includes(q) || nen.includes(q);
+      const s = (f.short_name || '').toLowerCase();
+      const suk = (f.short_name_uk || '').toLowerCase();
+      const sen = (f.short_name_en || '').toLowerCase();
+      const l = (f.long_name || '').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
     }));
   });
 
@@ -253,8 +286,36 @@ export async function renderFoodDb(container) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = foodIdInput.value ? Number(foodIdInput.value) : null;
-    const nameUk = foodNameUkInput.value.trim();
-    const nameEn = foodNameEnInput.value.trim() || nameUk;
+    const existing = id ? (foods.find(x => x.id === id) || {}) : {};
+
+    let nameUk = '';
+    let nameEn = '';
+    let shortName = '';
+    let longName = '';
+    let shortNameUk = '';
+    let shortNameEn = '';
+
+    if (currentLang === 'en') {
+      const fullName = (foodFullNameInput?.value || '').trim();
+      shortName = (foodShortNameInput?.value || '').trim() || fullName;
+      const ukrName = (foodUkrNameInput?.value || '').trim();
+
+      nameEn = fullName;
+      shortNameEn = shortName;
+      nameUk = ukrName || (existing.name_uk || fullName);
+      longName = fullName;
+      shortNameUk = ukrName ? shortName : (existing.short_name_uk || shortName);
+    } else {
+      shortName = (foodShortNameInput?.value || '').trim();
+      longName = (foodLongNameInput?.value || '').trim() || shortName;
+
+      nameUk = longName;
+      shortNameUk = shortName;
+      nameEn = existing.name_en || '';
+      shortNameEn = existing.short_name_en || '';
+    }
+
+    const primaryName = currentLang === 'en' ? (shortName || nameEn) : (shortName || nameUk);
     const cal = Math.max(0, parseFloat(foodCalInput.value) || 0);
     const pro = Math.max(0, parseFloat(foodProInput.value) || 0);
     const carb = Math.max(0, parseFloat(foodCarbInput.value) || 0);
@@ -264,41 +325,30 @@ export async function renderFoodDb(container) {
     const salt = Math.max(0, parseFloat(foodSaltInput.value) || 0);
     const sug = Math.max(0, parseFloat(foodSugInput.value) || 0);
 
+    const foodData = {
+      ...existing,
+      name: primaryName,
+      name_uk: nameUk,
+      name_en: nameEn,
+      short_name: shortName,
+      short_name_uk: shortNameUk,
+      short_name_en: shortNameEn,
+      long_name: longName,
+      calories: cal,
+      protein: pro,
+      carbs: carb,
+      fats: fat,
+      saturated_fats: satFat,
+      fiber: fib,
+      salt,
+      sugar: sug
+    };
+
     if (id) {
-      // update existing
-      const existing = foods.find(x => x.id === id) || {};
-      const updated = {
-        ...existing,
-        id,
-        name: nameUk,
-        name_uk: nameUk,
-        name_en: nameEn,
-        calories: cal,
-        protein: pro,
-        carbs: carb,
-        fats: fat,
-        saturated_fats: satFat,
-        fiber: fib,
-        salt,
-        sugar: sug
-      };
-      await updateFood(updated);
+      foodData.id = id;
+      await updateFood(foodData);
     } else {
-      // create new
-      const newFood = {
-        name: nameUk,
-        name_uk: nameUk,
-        name_en: nameEn,
-        calories: cal,
-        protein: pro,
-        carbs: carb,
-        fats: fat,
-        saturated_fats: satFat,
-        fiber: fib,
-        salt,
-        sugar: sug
-      };
-      await addFood(newFood);
+      await addFood(foodData);
     }
 
     closeModal();
