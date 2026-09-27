@@ -96,22 +96,28 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
-function downloadBlob(blob, fileName) {
+export function downloadBlob(blob, fileName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = fileName;
+  a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
-    document.body.removeChild(a);
+    a.remove();
+  }, 1000);
+  // Keep object URL alive for 3 minutes so mobile OS DownloadManager has time to complete
+  setTimeout(() => {
     URL.revokeObjectURL(url);
-  }, 300);
+  }, 180000);
+  return url;
 }
 
 function downloadFile(content, fileName, mimeType) {
   const blob = new Blob([content], { type: mimeType });
-  downloadBlob(blob, fileName);
+  return downloadBlob(blob, fileName);
 }
 
 export function openReportDialog() {
@@ -185,9 +191,11 @@ export function openReportDialog() {
         </div>
       </div>
 
-      <button type="button" id="btn-submit-download-report" class="btn-primary" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 700; gap: 8px;">
-        📥 ${t('download_report')}
-      </button>
+      <div id="report-dialog-actions" style="margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" id="btn-submit-download-report" class="btn-primary" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 700; gap: 8px; justify-content: center;">
+          📥 ${t('download_report')}
+        </button>
+      </div>
     </div>
   `;
 
@@ -198,6 +206,7 @@ export function openReportDialog() {
   const presetBtns = modal.querySelectorAll('.report-preset-btn');
   const closeBtn = modal.querySelector('#btn-close-report-dialog');
   const submitBtn = modal.querySelector('#btn-submit-download-report');
+  const actionsDiv = modal.querySelector('#report-dialog-actions');
 
   const closeDialog = () => modal.remove();
   closeBtn.addEventListener('click', closeDialog);
@@ -233,12 +242,91 @@ export function openReportDialog() {
     const eDate = sVal <= eVal ? eVal : sVal;
     const selectedFormat = modal.querySelector('input[name="report-format"]:checked')?.value || 'pdf';
 
-    closeDialog();
-    await exportReport(sDate, eDate, selectedFormat);
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `⏳ ${t('generating_report')}`;
+
+    try {
+      const report = await createReportBlob(sDate, eDate, selectedFormat);
+      if (!report) {
+        alert(t('no_data_for_report'));
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `📥 ${t('download_report')}`;
+        return;
+      }
+
+      // Try automatic download
+      const blobUrl = downloadBlob(report.blob, report.fileName);
+
+      // Check if Web Share API with files is supported
+      let canShare = false;
+      let shareFile = null;
+      try {
+        if ('canShare' in navigator && 'share' in navigator) {
+          shareFile = new File([report.blob], report.fileName, { type: report.mimeType });
+          canShare = navigator.canShare({ files: [shareFile] });
+        }
+      } catch (e) {
+        canShare = false;
+      }
+
+      // Transform action container to show success & provide direct synchronous user tap
+      // On mobile browsers (Chrome / Safari), direct synchronous tap triggers the native download dialog
+      if (actionsDiv) {
+        actionsDiv.innerHTML = `
+          <div style="display:flex; flex-direction:column; gap:10px; width:100%; margin-top:4px;">
+            <div style="color:var(--accent-secondary, #10b981); font-size:0.95rem; font-weight:700; text-align:center;">
+              ✓ ${t('report_ready')}
+            </div>
+            <button type="button" id="btn-manual-download" class="btn-primary" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 700; gap: 8px; justify-content: center;">
+              📥 ${t('download')} (${report.fileName})
+            </button>
+            ${canShare ? `
+              <button type="button" id="btn-share-report" class="btn-secondary" style="padding: 10px 16px; font-size: 0.9rem; font-weight: 600; gap: 8px; justify-content: center;">
+                📤 ${t('share')}
+              </button>
+            ` : ''}
+          </div>
+        `;
+
+        const manualBtn = actionsDiv.querySelector('#btn-manual-download');
+        manualBtn.addEventListener('click', () => {
+          // Direct synchronous user activation!
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = blobUrl;
+          a.download = report.fileName;
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => a.remove(), 1000);
+        });
+
+        if (canShare && shareFile) {
+          const shareBtn = actionsDiv.querySelector('#btn-share-report');
+          shareBtn.addEventListener('click', async () => {
+            try {
+              await navigator.share({
+                files: [shareFile],
+                title: report.fileName,
+              });
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                manualBtn.click();
+              }
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Report generation error:', err);
+      alert('Error: ' + err.message);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `📥 ${t('download_report')}`;
+    }
   });
 }
 
-export async function exportReport(startDateStr, endDateStr, format = 'pdf') {
+export async function createReportBlob(startDateStr, endDateStr, format = 'pdf') {
   const lang = getLanguage();
   const meals = await getMealsByDateRange(startDateStr, endDateStr);
   const allWeights = await getAllWeights();
@@ -254,8 +342,7 @@ export async function exportReport(startDateStr, endDateStr, format = 'pdf') {
   const dates = [...mealsByDate.keys()].sort();
 
   if (dates.length === 0) {
-    alert(t('no_data_for_report'));
-    return;
+    return null;
   }
 
   // Populate weightMap: direct match, direct getWeightByDate, and fallback to latest weight on/before date
@@ -303,14 +390,25 @@ export async function exportReport(startDateStr, endDateStr, format = 'pdf') {
 
   if (format === 'pdf') {
     const pdfBlob = await generatePdfReport(dates, mealsByDate, weightMap, targetsMap, lang);
-    downloadBlob(pdfBlob, `${fileBaseName}.pdf`);
+    return { blob: pdfBlob, fileName: `${fileBaseName}.pdf`, mimeType: 'application/pdf' };
   } else if (format === 'csv') {
     const csvContent = generateCsvSpreadsheet(dates, mealsByDate, weightMap, targetsMap, lang);
-    downloadFile(csvContent, `${fileBaseName}.csv`, 'text/csv;charset=utf-8;');
+    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    return { blob: csvBlob, fileName: `${fileBaseName}.csv`, mimeType: 'text/csv' };
   } else {
     const xmlContent = generateExcelXmlSpreadsheet(dates, mealsByDate, weightMap, targetsMap, lang);
-    downloadFile(xmlContent, `${fileBaseName}.xls`, 'application/vnd.ms-excel;charset=utf-8;');
+    const xmlBlob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    return { blob: xmlBlob, fileName: `${fileBaseName}.xls`, mimeType: 'application/vnd.ms-excel' };
   }
+}
+
+export async function exportReport(startDateStr, endDateStr, format = 'pdf') {
+  const report = await createReportBlob(startDateStr, endDateStr, format);
+  if (!report) {
+    alert(t('no_data_for_report'));
+    return;
+  }
+  downloadBlob(report.blob, report.fileName);
 }
 
 // ----------------------------------------------------

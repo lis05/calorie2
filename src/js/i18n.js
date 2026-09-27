@@ -136,7 +136,11 @@ const translations = {
     subtotal: "Підсумок",
     target_label: "Ціль",
     download_report: "Завантажити звіт",
-    format_pdf: "PDF (.pdf)"
+    format_pdf: "PDF (.pdf)",
+    download: "Завантажити",
+    share: "Поділитися / Зберегти",
+    report_ready: "Звіт готовий!",
+    generating_report: "Формування звіту..."
   },
   en: {
     app_title: "Calorie",
@@ -275,7 +279,11 @@ const translations = {
     subtotal: "Subtotal",
     target_label: "Target",
     download_report: "Download Report",
-    format_pdf: "PDF (.pdf)"
+    format_pdf: "PDF (.pdf)",
+    download: "Download",
+    share: "Share / Save",
+    report_ready: "Report Ready!",
+    generating_report: "Generating report..."
   }
 };
 
