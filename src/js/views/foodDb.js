@@ -3,6 +3,8 @@ import { getAllFoods, addFood, updateFood, deleteFood } from '../db.js';
 import { getFoodDisplayName } from '../defaultFoods.js';
 
 export async function renderFoodDb(container) {
+  document.querySelectorAll('#app > #food-edit-modal').forEach(el => el.remove());
+
   let foods = await getAllFoods();
   const currentLang = getLanguage();
 
@@ -46,8 +48,8 @@ export async function renderFoodDb(container) {
           ` : `
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">${t('short_name')} *</label>
-                <input type="text" id="food-short-name-input" class="form-input" placeholder="напр. Банан" required />
+                <label class="form-label">${t('short_name')}</label>
+                <input type="text" id="food-short-name-input" class="form-input" placeholder="напр. Банан" />
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label">${t('long_name')} *</label>
@@ -63,35 +65,35 @@ export async function renderFoodDb(container) {
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
             <div class="form-group">
               <label class="form-label">${t('target_calories')} *</label>
-              <input type="number" id="food-cal-input" class="form-input" step="0.1" required />
+              <input type="number" id="food-cal-input" class="form-input" step="any" min="0" required />
             </div>
             <div class="form-group">
               <label class="form-label">${t('protein')}</label>
-              <input type="number" id="food-pro-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-pro-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('carbs')}</label>
-              <input type="number" id="food-carb-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-carb-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('fats')}</label>
-              <input type="number" id="food-fat-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-fat-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('saturated_fats')}</label>
-              <input type="number" id="food-sat-fat-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-sat-fat-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('fiber')}</label>
-              <input type="number" id="food-fib-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-fib-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('salt')}</label>
-              <input type="number" id="food-salt-input" class="form-input" step="0.0001" value="0" />
+              <input type="number" id="food-salt-input" class="form-input" step="any" min="0" value="0" />
             </div>
             <div class="form-group">
               <label class="form-label">${t('sugar')}</label>
-              <input type="number" id="food-sug-input" class="form-input" step="0.1" value="0" />
+              <input type="number" id="food-sug-input" class="form-input" step="any" min="0" value="0" />
             </div>
           </div>
 
@@ -181,15 +183,13 @@ export async function renderFoodDb(container) {
 
     listContainer.innerHTML = items.map(f => {
       const displayName = getFoodDisplayName(f, currentLang);
-      const fullName = currentLang === 'en' ? (f.name_en || f.long_name || f.name) : (f.long_name || f.name_uk || f.name);
-      const showSubName = fullName && fullName !== displayName;
       return `
         <div class="food-card clickable" data-edit-id="${f.id}">
           <div class="food-card-header">
             <div style="flex:1;">
               <h4 class="food-card-title">${displayName}</h4>
               <div class="food-card-sub">
-                <span>${showSubName ? `<span style="color:var(--text-muted);">${fullName} · </span>` : ''}${t('per_100g')} · <b style="color:var(--accent-secondary)">${t('edit')}</b></span>
+                <span>${t('per_100g')} · <b style="color:var(--accent-secondary)">${t('edit')}</b></span>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -273,7 +273,9 @@ export async function renderFoodDb(container) {
       const suk = (f.short_name_uk || '').toLowerCase();
       const sen = (f.short_name_en || '').toLowerCase();
       const l = (f.long_name || '').toLowerCase();
-      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
+      const dEn = getFoodDisplayName(f, 'en').toLowerCase();
+      const dUk = getFoodDisplayName(f, 'uk').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q) || dEn.includes(q) || dUk.includes(q);
     }));
   });
 
@@ -285,75 +287,93 @@ export async function renderFoodDb(container) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = foodIdInput.value ? Number(foodIdInput.value) : null;
-    const existing = id ? (foods.find(x => x.id === id) || {}) : {};
-
-    let nameUk = '';
-    let nameEn = '';
-    let shortName = '';
-    let longName = '';
-    let shortNameUk = '';
-    let shortNameEn = '';
-
-    if (currentLang === 'en') {
-      const fullName = (foodFullNameInput?.value || '').trim();
-      shortName = (foodShortNameInput?.value || '').trim() || fullName;
-      const ukrName = (foodUkrNameInput?.value || '').trim();
-
-      nameEn = fullName;
-      shortNameEn = shortName;
-      nameUk = ukrName || (existing.name_uk || fullName);
-      longName = fullName;
-      shortNameUk = ukrName ? shortName : (existing.short_name_uk || shortName);
-    } else {
-      shortName = (foodShortNameInput?.value || '').trim();
-      longName = (foodLongNameInput?.value || '').trim() || shortName;
-
-      nameUk = longName;
-      shortNameUk = shortName;
-      nameEn = existing.name_en || '';
-      shortNameEn = existing.short_name_en || '';
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
     }
 
-    const primaryName = currentLang === 'en' ? (shortName || nameEn) : (shortName || nameUk);
-    const cal = Math.max(0, parseFloat(foodCalInput.value) || 0);
-    const pro = Math.max(0, parseFloat(foodProInput.value) || 0);
-    const carb = Math.max(0, parseFloat(foodCarbInput.value) || 0);
-    const fat = Math.max(0, parseFloat(foodFatInput.value) || 0);
-    const satFat = Math.max(0, parseFloat(foodSatFatInput.value) || 0);
-    const fib = Math.max(0, parseFloat(foodFibInput.value) || 0);
-    const salt = Math.max(0, parseFloat(foodSaltInput.value) || 0);
-    const sug = Math.max(0, parseFloat(foodSugInput.value) || 0);
+    try {
+      const id = foodIdInput.value ? Number(foodIdInput.value) : null;
+      const existing = id ? (foods.find(x => x.id === id) || {}) : {};
 
-    const foodData = {
-      ...existing,
-      name: primaryName,
-      name_uk: nameUk,
-      name_en: nameEn,
-      short_name: shortName,
-      short_name_uk: shortNameUk,
-      short_name_en: shortNameEn,
-      long_name: longName,
-      calories: cal,
-      protein: pro,
-      carbs: carb,
-      fats: fat,
-      saturated_fats: satFat,
-      fiber: fib,
-      salt,
-      sugar: sug
-    };
+      let fullName = '';
+      let ukrName = '';
+      let nameUk = '';
+      let nameEn = '';
+      let shortName = '';
+      let longName = '';
+      let shortNameUk = '';
+      let shortNameEn = '';
 
-    if (id) {
-      foodData.id = id;
-      await updateFood(foodData);
-    } else {
-      await addFood(foodData);
+      if (currentLang === 'en') {
+        fullName = (foodFullNameInput?.value || '').trim();
+        shortName = (foodShortNameInput?.value || '').trim() || fullName;
+        ukrName = (foodUkrNameInput?.value || '').trim();
+
+        nameEn = fullName;
+        shortNameEn = shortName;
+        nameUk = ukrName || (existing.name_uk || fullName);
+        longName = fullName;
+        shortNameUk = ukrName ? shortName : (existing.short_name_uk || shortName);
+      } else {
+        shortName = (foodShortNameInput?.value || '').trim();
+        longName = (foodLongNameInput?.value || '').trim();
+
+        if (!longName && shortName) longName = shortName;
+        if (!shortName && longName) shortName = longName;
+
+        nameUk = longName;
+        shortNameUk = shortName;
+        nameEn = existing.name_en || '';
+        shortNameEn = existing.short_name_en || '';
+      }
+
+      const primaryName = currentLang === 'en'
+        ? (fullName || nameEn || shortName || 'Food')
+        : (longName || nameUk || shortName || 'Продукт');
+
+      const cal = Math.max(0, parseFloat(String(foodCalInput.value).replace(',', '.')) || 0);
+      const pro = Math.max(0, parseFloat(String(foodProInput.value).replace(',', '.')) || 0);
+      const carb = Math.max(0, parseFloat(String(foodCarbInput.value).replace(',', '.')) || 0);
+      const fat = Math.max(0, parseFloat(String(foodFatInput.value).replace(',', '.')) || 0);
+      const satFat = Math.max(0, parseFloat(String(foodSatFatInput.value).replace(',', '.')) || 0);
+      const fib = Math.max(0, parseFloat(String(foodFibInput.value).replace(',', '.')) || 0);
+      const salt = Math.max(0, parseFloat(String(foodSaltInput.value).replace(',', '.')) || 0);
+      const sug = Math.max(0, parseFloat(String(foodSugInput.value).replace(',', '.')) || 0);
+
+      const foodData = {
+        ...existing,
+        name: primaryName,
+        name_uk: nameUk,
+        name_en: nameEn,
+        short_name: shortName,
+        short_name_uk: shortNameUk,
+        short_name_en: shortNameEn,
+        long_name: longName,
+        calories: cal,
+        protein: pro,
+        carbs: carb,
+        fats: fat,
+        saturated_fats: satFat,
+        sat_fat: satFat,
+        fiber: fib,
+        salt,
+        sugar: sug
+      };
+
+      if (id) {
+        foodData.id = id;
+        await updateFood(foodData);
+      } else {
+        await addFood(foodData);
+      }
+
+      closeModal();
+      foods = await getAllFoods();
+      renderRows(foods);
+    } catch (err) {
+      console.error('Error saving food:', err);
+      closeModal();
     }
-
-    closeModal();
-    foods = await getAllFoods();
-    renderRows(foods);
   });
 
   renderRows(foods);

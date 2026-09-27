@@ -1,5 +1,6 @@
 import { t, getLanguage } from '../i18n.js';
-import { getMealsByDateRange, getTargetsForDate, getWeightsByDateRange, toLocalDateString } from '../db.js';
+import { getMealsByDateRange, getTargetsForDate, getWeightsByDateRange, getWaterByDateRange, toLocalDateString } from '../db.js';
+import { openReportDialog } from '../report.js';
 
 const METRICS = [
   { id: 'calories',       labelKey: 'calories_label',       unitKey: 'kcal',   color: 'var(--stat-cal)' },
@@ -14,11 +15,15 @@ const METRICS = [
 
 let selectedMetricId = 'calories';
 let weightRangeMonths = 3;
+let waterRangeMonths = 3;
 
 export async function renderAnalytics(container) {
   container.innerHTML = `
-    <div class="view-header">
-      <h2>${t('weekly_title')}</h2>
+    <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2 style="margin:0; font-size:1.2rem; font-weight:700;">${t('weekly_title')}</h2>
+      <button type="button" id="btn-open-report-dialog" class="btn-primary" style="width:auto; padding:6px 14px; font-size:0.85rem; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+        📄 ${t('generate_report')}
+      </button>
     </div>
 
     <!-- Metric Selector Chips -->
@@ -58,12 +63,44 @@ export async function renderAnalytics(container) {
       <!-- Weight Summary Stats -->
       <div id="weight-stats-summary" class="analytics-stats-grid" style="margin-top: 14px;"></div>
     </div>
+
+    <!-- Water Trend (Last Months) Card -->
+    <div class="card" style="margin-top: 20px; padding: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+        <div>
+          <h3 style="font-size:1.05rem; font-weight:700; margin:0; display:flex; align-items:center; gap:6px;">
+            <span>💧</span>
+            <span>${t('water_trend')}</span>
+          </h3>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${t('last_months')}</span>
+        </div>
+        <div class="water-range-picker" style="display:flex; gap:4px;">
+          <button type="button" class="btn-secondary water-range-btn ${waterRangeMonths === 1 ? 'active' : ''}" data-range="1" style="width:auto; padding:4px 10px; font-size:0.75rem; border-radius:14px;">1M</button>
+          <button type="button" class="btn-secondary water-range-btn ${waterRangeMonths === 3 ? 'active' : ''}" data-range="3" style="width:auto; padding:4px 10px; font-size:0.75rem; border-radius:14px;">3M</button>
+          <button type="button" class="btn-secondary water-range-btn ${waterRangeMonths === 6 ? 'active' : ''}" data-range="6" style="width:auto; padding:4px 10px; font-size:0.75rem; border-radius:14px;">6M</button>
+        </div>
+      </div>
+
+      <div id="water-chart-container" style="position:relative; width:100%; min-height:180px;"></div>
+
+      <!-- Water Summary Stats -->
+      <div id="water-stats-summary" class="analytics-stats-grid" style="margin-top: 14px;"></div>
+    </div>
   `;
 
   renderMetricChips(container);
   await loadAndDisplayChart(container);
   setupWeightRangeButtons(container);
   await loadAndDisplayWeightChart(container);
+  setupWaterRangeButtons(container);
+  await loadAndDisplayWaterChart(container);
+
+  const reportBtn = container.querySelector('#btn-open-report-dialog');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', () => {
+      openReportDialog();
+    });
+  }
 }
 
 function renderMetricChips(container) {
@@ -141,9 +178,12 @@ async function loadAndDisplayChart(container) {
   const targets = await getTargetsForDate(endDateStr);
   let targetVal = 0;
   if (selectedMetricId === 'saturated_fats') {
-    targetVal = Number(targets.saturated_fats !== undefined ? targets.saturated_fats : (targets.sat_fat !== undefined ? targets.sat_fat : 20)) || 20;
+    const sf = targets.saturated_fats !== undefined ? targets.saturated_fats : (targets.sat_fat !== undefined ? targets.sat_fat : 20);
+    targetVal = Number(sf);
+    if (isNaN(targetVal)) targetVal = 20;
   } else {
-    targetVal = Number(targets[selectedMetricId]) || 0;
+    targetVal = targets[selectedMetricId] !== undefined ? Number(targets[selectedMetricId]) : 0;
+    if (isNaN(targetVal)) targetVal = 0;
   }
 
   if (metricTargetEl) {
@@ -257,7 +297,11 @@ async function loadAndDisplayWeightChart(container) {
 
   const endDate = new Date();
   const startDate = new Date(endDate);
+  const currentDay = startDate.getDate();
+  startDate.setDate(1);
   startDate.setMonth(startDate.getMonth() - weightRangeMonths);
+  const daysInTargetMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+  startDate.setDate(Math.min(currentDay, daysInTargetMonth));
 
   const startDateStr = toLocalDateString(startDate);
   const endDateStr = toLocalDateString(endDate);
@@ -388,7 +432,7 @@ async function loadAndDisplayWeightChart(container) {
   dots.forEach(dot => {
     const showTip = () => {
       const d = dot.getAttribute('data-date');
-      const w = dot.getAttribute('data-weight');
+      const w = Number(dot.getAttribute('data-weight')).toFixed(2);
       const dObj = new Date(d + 'T12:00:00');
       const formattedD = dObj.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
       tooltip.textContent = `${formattedD}: ${w} ${unit}`;
@@ -408,10 +452,10 @@ async function loadAndDisplayWeightChart(container) {
   });
 
   // Summary stats
-  const firstW = records[0].weight;
-  const lastW = records[records.length - 1].weight;
-  const diff = Math.round((lastW - firstW) * 10) / 10;
-  const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+  const firstW = Number(records[0].weight).toFixed(2);
+  const lastW = Number(records[records.length - 1].weight).toFixed(2);
+  const diff = Math.round((Number(lastW) - Number(firstW)) * 100) / 100;
+  const diffText = diff > 0 ? `+${diff.toFixed(2)}` : `${diff.toFixed(2)}`;
   const diffColor = diff < 0 ? 'var(--accent-primary, #10b981)' : (diff > 0 ? 'var(--accent-warning, #f59e0b)' : 'var(--text-primary)');
 
   statsSummary.innerHTML = `
@@ -426,6 +470,199 @@ async function loadAndDisplayWeightChart(container) {
     <div class="stat-box" style="text-align:center; padding:10px 4px;">
       <div class="stat-label" style="font-size:0.72rem;">${t('weight_change')}</div>
       <div class="stat-val" style="font-size:1.05rem; color:${diffColor};">${diffText} <span style="font-size:0.75rem;">${unit}</span></div>
+    </div>
+  `;
+}
+
+function setupWaterRangeButtons(container) {
+  const rangeBtns = container.querySelectorAll('.water-range-btn');
+  rangeBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      waterRangeMonths = Number(btn.getAttribute('data-range')) || 3;
+      rangeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      await loadAndDisplayWaterChart(container);
+    });
+  });
+}
+
+async function loadAndDisplayWaterChart(container) {
+  const chartWrapper = container.querySelector('#water-chart-container');
+  const statsSummary = container.querySelector('#water-stats-summary');
+  if (!chartWrapper || !statsSummary) return;
+
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  const currentDay = startDate.getDate();
+  startDate.setDate(1);
+  startDate.setMonth(startDate.getMonth() - waterRangeMonths);
+  const daysInTargetMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+  startDate.setDate(Math.min(currentDay, daysInTargetMonth));
+
+  const startDateStr = toLocalDateString(startDate);
+  const endDateStr = toLocalDateString(endDate);
+
+  const records = await getWaterByDateRange(startDateStr, endDateStr);
+  records.sort((a, b) => a.date.localeCompare(b.date));
+
+  const lang = getLanguage();
+  const locale = lang === 'uk' ? 'uk-UA' : 'en-US';
+  const startLabel = startDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  const endLabel = endDate.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  const unit = t('unit_ml');
+
+  if (records.length === 0) {
+    chartWrapper.innerHTML = `
+      <div class="empty-state" style="padding: 30px 10px;">
+        <div style="font-size: 1.6rem; margin-bottom: 6px;">💧</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">${t('no_water_data_range')}</div>
+      </div>
+    `;
+    statsSummary.innerHTML = `
+      <div class="stat-box" style="text-align:center; padding:10px 4px;">
+        <div class="stat-label" style="font-size:0.72rem;">${t('first_logged')}</div>
+        <div class="stat-val" style="font-size:1.05rem; color:var(--text-muted);">--</div>
+      </div>
+      <div class="stat-box" style="text-align:center; padding:10px 4px;">
+        <div class="stat-label" style="font-size:0.72rem;">${t('latest_logged')}</div>
+        <div class="stat-val" style="font-size:1.05rem; color:var(--text-muted);">--</div>
+      </div>
+      <div class="stat-box" style="text-align:center; padding:10px 4px;">
+        <div class="stat-label" style="font-size:0.72rem;">${t('avg_daily')}</div>
+        <div class="stat-val" style="font-size:1.05rem; color:var(--text-muted);">--</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Calculate Y min and max with margin
+  const amounts = records.map(r => r.amount);
+  const minA = Math.min(...amounts);
+  const maxA = Math.max(...amounts);
+  let yMin = Math.max(0, Math.floor((minA - 100) / 250) * 250);
+  let yMax = Math.ceil((maxA + 100) / 250) * 250;
+  if (yMax <= yMin) {
+    yMax = yMin + 500;
+  }
+  if (yMax - yMin < 500) {
+    yMax = yMin + 500;
+  }
+  const yMid = Math.round((yMin + yMax) / 2);
+
+  // SVG dimensions
+  const svgWidth = 340;
+  const svgHeight = 180;
+  const padLeft = 46;
+  const padRight = 16;
+  const padTop = 18;
+  const padBottom = 26;
+  const plotW = svgWidth - padLeft - padRight;
+  const plotH = svgHeight - padTop - padBottom;
+
+  const startTime = startDate.getTime();
+  const endTime = endDate.getTime();
+  const timeSpan = Math.max(endTime - startTime, 1);
+
+  const points = records.map(r => {
+    const tVal = new Date(r.date + 'T12:00:00').getTime();
+    const clampedT = Math.max(startTime, Math.min(endTime, tVal));
+    const x = Math.round((padLeft + ((clampedT - startTime) / timeSpan) * plotW) * 10) / 10;
+    const y = Math.round((padTop + ((yMax - r.amount) / (yMax - yMin)) * plotH) * 10) / 10;
+    return { x, y, date: r.date, amount: r.amount };
+  });
+
+  const polylinePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${polylinePath} L ${points[points.length - 1].x} ${padTop + plotH} L ${points[0].x} ${padTop + plotH} Z`;
+
+  chartWrapper.innerHTML = `
+    <div style="position:relative; width:100%;">
+      <div id="water-tooltip" style="display:none; position:absolute; pointer-events:none; background:var(--surface-color); border:1px solid #0284c7; color:var(--text-main); font-size:0.75rem; font-weight:700; padding:4px 8px; border-radius:6px; box-shadow:var(--shadow-md); z-index:10; transform:translate(-50%, -120%); white-space:nowrap;"></div>
+      <svg viewBox="0 0 ${svgWidth} ${svgHeight}" style="width:100%; height:auto; overflow:visible; display:block;">
+        <defs>
+          <linearGradient id="waterAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0284c7" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#0284c7" stop-opacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        <!-- Y scale horizontal lines and labels -->
+        <line x1="${padLeft}" y1="${padTop}" x2="${svgWidth - padRight}" y2="${padTop}" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+        <text x="${padLeft - 6}" y="${padTop + 4}" font-size="10" font-weight="600" fill="var(--text-muted)" text-anchor="end">${yMax}</text>
+
+        <line x1="${padLeft}" y1="${padTop + plotH / 2}" x2="${svgWidth - padRight}" y2="${padTop + plotH / 2}" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+        <text x="${padLeft - 6}" y="${padTop + plotH / 2 + 4}" font-size="10" font-weight="600" fill="var(--text-muted)" text-anchor="end">${yMid}</text>
+
+        <line x1="${padLeft}" y1="${padTop + plotH}" x2="${svgWidth - padRight}" y2="${padTop + plotH}" stroke="var(--border-subtle)" />
+        <text x="${padLeft - 6}" y="${padTop + plotH + 4}" font-size="10" font-weight="600" fill="var(--text-muted)" text-anchor="end">${yMin}</text>
+
+        <!-- Gradient fill beneath zig-zag line -->
+        ${points.length >= 2 ? `<path d="${areaPath}" fill="url(#waterAreaGrad)" />` : ''}
+
+        <!-- Connecting Zig-Zag Line -->
+        ${points.length >= 2 ? `<path d="${polylinePath}" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />` : ''}
+
+        <!-- Dots -->
+        ${points.map((p, idx) => {
+          const isLatest = idx === points.length - 1;
+          return `
+            <circle cx="${p.x}" cy="${p.y}" r="${isLatest ? 5 : 3.5}"
+              fill="${isLatest ? 'var(--accent-primary, #10b981)' : '#0284c7'}"
+              stroke="var(--surface-card, #1e2230)" stroke-width="2"
+              class="water-chart-dot"
+              data-date="${p.date}" data-amount="${p.amount}"
+              style="cursor:pointer;" />
+          `;
+        }).join('')}
+
+        <!-- X scale (only beginning and end of range) -->
+        <text x="${padLeft}" y="${svgHeight - 4}" font-size="10" font-weight="600" fill="var(--text-muted)" text-anchor="start">${startLabel}</text>
+        <text x="${svgWidth - padRight}" y="${svgHeight - 4}" font-size="10" font-weight="600" fill="var(--text-muted)" text-anchor="end">${endLabel}</text>
+      </svg>
+    </div>
+  `;
+
+  // Interactive tooltip on dot hover/touch
+  const tooltip = chartWrapper.querySelector('#water-tooltip');
+  const dots = chartWrapper.querySelectorAll('.water-chart-dot');
+  dots.forEach(dot => {
+    const showTip = () => {
+      const d = dot.getAttribute('data-date');
+      const a = dot.getAttribute('data-amount');
+      const dObj = new Date(d + 'T12:00:00');
+      const formattedD = dObj.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+      tooltip.textContent = `${formattedD}: ${a} ${unit}`;
+      const rect = dot.getBoundingClientRect();
+      const parentRect = chartWrapper.getBoundingClientRect();
+      tooltip.style.left = `${rect.left - parentRect.left + rect.width / 2}px`;
+      tooltip.style.top = `${rect.top - parentRect.top}px`;
+      tooltip.style.display = 'block';
+    };
+    dot.addEventListener('mouseenter', showTip);
+    dot.addEventListener('click', showTip);
+    dot.addEventListener('touchstart', showTip, { passive: true });
+  });
+
+  chartWrapper.addEventListener('mouseleave', () => {
+    if (tooltip) tooltip.style.display = 'none';
+  });
+
+  // Summary stats
+  const firstA = records[0].amount;
+  const lastA = records[records.length - 1].amount;
+  const avgA = Math.round(amounts.reduce((a, b) => a + b, 0) / amounts.length);
+
+  statsSummary.innerHTML = `
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('first_logged')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--text-secondary);">${firstA} <span style="font-size:0.75rem;">${unit}</span></div>
+    </div>
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('latest_logged')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--accent-secondary);">${lastA} <span style="font-size:0.75rem;">${unit}</span></div>
+    </div>
+    <div class="stat-box" style="text-align:center; padding:10px 4px;">
+      <div class="stat-label" style="font-size:0.72rem;">${t('avg_daily')}</div>
+      <div class="stat-val" style="font-size:1.05rem; color:#0284c7;">${avgA} <span style="font-size:0.75rem;">${unit}</span></div>
     </div>
   `;
 }

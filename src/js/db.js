@@ -1,11 +1,15 @@
-import { defaultFoods } from './defaultFoods.js';
+import { defaultFoods, getFoodDisplayName } from './defaultFoods.js';
 
 const DB_NAME = 'Calorie2DB';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbInstance = null;
 
 export function toLocalDateString(dateObj) {
+  if (typeof dateObj === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateObj)) return dateObj;
+    dateObj = new Date(dateObj);
+  }
   const d = dateObj || new Date();
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -50,6 +54,11 @@ export function openDB() {
       if (!db.objectStoreNames.contains('weights')) {
         db.createObjectStore('weights', { keyPath: 'date' });
       }
+
+      // Daily Water store: keyPath date
+      if (!db.objectStoreNames.contains('water')) {
+        db.createObjectStore('water', { keyPath: 'date' });
+      }
     };
 
     request.onsuccess = async (event) => {
@@ -77,7 +86,7 @@ async function seedDefaultsIfEmpty(db) {
       tx.onerror = () => reject(tx.error);
     });
   } else {
-    // Backfill name_en, name_uk, saturated_fats, salt, sugar on existing stored foods
+    // Backfill name_en, name_uk, short_name, saturated_fats, salt, sugar on existing stored foods
     await new Promise((resolve, reject) => {
       const tx = db.transaction(['foods'], 'readwrite');
       const store = tx.objectStore('foods');
@@ -90,6 +99,10 @@ async function seedDefaultsIfEmpty(db) {
           if (match) {
             if (!f.name_uk) { f.name_uk = match.name_uk; changed = true; }
             if (!f.name_en) { f.name_en = match.name_en; changed = true; }
+            if (!f.short_name && match.short_name) { f.short_name = match.short_name; changed = true; }
+            if (!f.short_name_uk && match.short_name_uk) { f.short_name_uk = match.short_name_uk; changed = true; }
+            if (!f.short_name_en && match.short_name_en) { f.short_name_en = match.short_name_en; changed = true; }
+            if (!f.long_name && (match.long_name || match.name_uk)) { f.long_name = match.long_name || match.name_uk; changed = true; }
             if (f.saturated_fats === undefined) { f.saturated_fats = match.saturated_fats !== undefined ? match.saturated_fats : (match.sat_fat || 0); changed = true; }
             if (f.salt === undefined) { f.salt = match.salt !== undefined ? match.salt : 0; changed = true; }
             if (f.sugar === undefined) { f.sugar = match.sugar !== undefined ? match.sugar : 0; changed = true; }
@@ -105,6 +118,48 @@ async function seedDefaultsIfEmpty(db) {
       tx.onerror = () => reject(tx.error);
     });
   }
+
+  // Ensure every existing meal has its own self-contained frozen copy of short_name and food_name
+  await new Promise((resolve) => {
+    try {
+      const txMeals = db.transaction(['meals'], 'readwrite');
+      const mealStore = txMeals.objectStore('meals');
+      const req = mealStore.getAll();
+      req.onsuccess = () => {
+        const meals = req.result || [];
+        for (const m of meals) {
+          let changed = false;
+          if (!m.short_name || !m.short_name.trim()) {
+            const match = defaultFoods.find(df => df.name_uk === m.name_uk || df.name === m.name || df.name_uk === m.food_name || (df.name_en && df.name_en === m.name_en));
+            if (match) {
+              m.short_name = match.short_name || match.short_name_uk || match.name_uk || '';
+              m.short_name_uk = match.short_name_uk || match.short_name || '';
+              m.short_name_en = match.short_name_en || match.short_name || '';
+              changed = true;
+            } else if (m.food_name || m.name) {
+              m.short_name = m.food_name || m.name;
+              changed = true;
+            }
+          }
+          if (!m.short_name_uk && m.short_name) {
+            m.short_name_uk = m.short_name;
+            changed = true;
+          }
+          if (!m.long_name && (m.name_uk || m.food_name || m.name)) {
+            m.long_name = m.name_uk || m.food_name || m.name;
+            changed = true;
+          }
+          if (changed) {
+            mealStore.put(m);
+          }
+        }
+      };
+      txMeals.oncomplete = () => resolve();
+      txMeals.onerror = () => resolve();
+    } catch (e) {
+      resolve();
+    }
+  });
 
   // Default targets baseline (applies from dawn of time until user modifies)
   await new Promise((resolve, reject) => {
@@ -176,7 +231,9 @@ export async function searchFoods(query) {
     const suk = (f.short_name_uk || '').toLowerCase();
     const sen = (f.short_name_en || '').toLowerCase();
     const l = (f.long_name || '').toLowerCase();
-    return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
+    const dEn = getFoodDisplayName(f, 'en').toLowerCase();
+    const dUk = getFoodDisplayName(f, 'uk').toLowerCase();
+    return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q) || dEn.includes(q) || dUk.includes(q);
   });
 }
 
@@ -228,14 +285,20 @@ export async function getMealsByDate(dateStr) {
 
 export async function getMealsByDateRange(startDateStr, endDateStr) {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(['meals'], 'readonly');
-    const store = tx.objectStore('meals');
-    const index = store.index('date');
-    const range = IDBKeyRange.bound(startDateStr, endDateStr);
-    const req = index.getAll(range);
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(['meals'], 'readonly');
+      const store = tx.objectStore('meals');
+      const index = store.index('date');
+      const lower = startDateStr <= endDateStr ? startDateStr : endDateStr;
+      const upper = startDateStr <= endDateStr ? endDateStr : startDateStr;
+      const range = IDBKeyRange.bound(lower, upper);
+      const req = index.getAll(range);
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    } catch (err) {
+      resolve([]);
+    }
   });
 }
 
@@ -398,7 +461,7 @@ export async function saveWeight(dateStr, weight) {
     } else {
       const record = {
         date: dateStr,
-        weight: Math.round(Number(weight) * 10) / 10,
+        weight: Math.round(Number(weight) * 100) / 100,
         updated_at: new Date().toISOString()
       };
       const req = store.put(record);
@@ -419,15 +482,111 @@ export async function deleteWeight(dateStr) {
   });
 }
 
+export async function getAllWeights() {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(['weights'], 'readonly');
+      const store = tx.objectStore('weights');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    } catch (err) {
+      resolve([]);
+    }
+  });
+}
+
 export async function getWeightsByDateRange(startDateStr, endDateStr) {
   const db = await openDB();
   return new Promise((resolve) => {
-    const tx = db.transaction(['weights'], 'readonly');
-    const store = tx.objectStore('weights');
-    const range = IDBKeyRange.bound(startDateStr, endDateStr);
-    const req = store.getAll(range);
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => resolve([]);
+    try {
+      const tx = db.transaction(['weights'], 'readonly');
+      const store = tx.objectStore('weights');
+      const lower = startDateStr <= endDateStr ? startDateStr : endDateStr;
+      const upper = startDateStr <= endDateStr ? endDateStr : startDateStr;
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const all = req.result || [];
+        const filtered = all.filter(r => {
+          const d = r.date || r.id;
+          return d && d >= lower && d <= upper;
+        });
+        resolve(filtered);
+      };
+      req.onerror = () => resolve([]);
+    } catch (err) {
+      resolve([]);
+    }
+  });
+}
+
+// Daily Water CRUD
+export async function getWaterByDate(dateStr) {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(['water'], 'readonly');
+    const store = tx.objectStore('water');
+    const req = store.get(dateStr);
+    req.onsuccess = () => resolve(req.result ? req.result.amount : null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+export async function saveWater(dateStr, amount) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['water'], 'readwrite');
+    const store = tx.objectStore('water');
+    if (amount === null || amount === undefined || amount === '' || isNaN(Number(amount)) || Number(amount) <= 0) {
+      const req = store.delete(dateStr);
+      req.onsuccess = () => resolve(null);
+      req.onerror = () => reject(req.error);
+    } else {
+      const record = {
+        date: dateStr,
+        amount: Math.round(Number(amount)),
+        updated_at: new Date().toISOString()
+      };
+      const req = store.put(record);
+      req.onsuccess = () => resolve(record.amount);
+      req.onerror = () => reject(req.error);
+    }
+  });
+}
+
+export async function deleteWater(dateStr) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['water'], 'readwrite');
+    const store = tx.objectStore('water');
+    const req = store.delete(dateStr);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getWaterByDateRange(startDateStr, endDateStr) {
+  const db = await openDB();
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(['water'], 'readonly');
+      const store = tx.objectStore('water');
+      const lower = startDateStr <= endDateStr ? startDateStr : endDateStr;
+      const upper = startDateStr <= endDateStr ? endDateStr : startDateStr;
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const all = req.result || [];
+        const filtered = all.filter(r => {
+          const d = r.date || r.id;
+          return d && d >= lower && d <= upper;
+        });
+        resolve(filtered);
+      };
+      req.onerror = () => resolve([]);
+    } catch (err) {
+      resolve([]);
+    }
   });
 }
 
@@ -467,14 +626,23 @@ export async function exportAllData() {
     req.onerror = () => resolve([]);
   });
 
+  const water = await new Promise((resolve) => {
+    const tx = db.transaction(['water'], 'readonly');
+    const store = tx.objectStore('water');
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+
   return {
-    version: 4,
+    version: 5,
     exported_at: new Date().toISOString(),
     foods,
     meals,
     settings,
     daily_targets,
-    weights
+    weights,
+    water
   };
 }
 
@@ -486,6 +654,7 @@ export async function importAllData(data) {
   if (data.settings && Array.isArray(data.settings)) storesToUse.push('settings');
   if (data.daily_targets && Array.isArray(data.daily_targets)) storesToUse.push('daily_targets');
   if (data.weights && Array.isArray(data.weights)) storesToUse.push('weights');
+  if (data.water && Array.isArray(data.water)) storesToUse.push('water');
 
   if (storesToUse.length === 0) return;
 
@@ -498,9 +667,11 @@ export async function importAllData(data) {
       const store = tx.objectStore('foods');
       store.clear();
       for (const f of data.foods) {
-        const item = { ...f };
-        delete item.id;
-        store.add(item);
+        if (f && typeof f === 'object') {
+          const item = { ...f };
+          delete item.id;
+          store.add(item);
+        }
       }
     }
 
@@ -508,16 +679,20 @@ export async function importAllData(data) {
       const store = tx.objectStore('meals');
       store.clear();
       for (const m of data.meals) {
-        const item = { ...m };
-        delete item.id;
-        store.add(item);
+        if (m && typeof m === 'object' && m.date) {
+          const item = { ...m };
+          delete item.id;
+          store.add(item);
+        }
       }
     }
 
     if (data.settings && Array.isArray(data.settings)) {
       const store = tx.objectStore('settings');
       for (const s of data.settings) {
-        store.put({ ...s });
+        if (s && typeof s === 'object' && s.key) {
+          store.put({ ...s });
+        }
       }
     }
 
@@ -525,9 +700,11 @@ export async function importAllData(data) {
       const store = tx.objectStore('daily_targets');
       store.clear();
       for (const dt of data.daily_targets) {
-        const item = { ...dt };
-        delete item.id;
-        store.add(item);
+        if (dt && typeof dt === 'object' && dt.start_date) {
+          const item = { ...dt };
+          delete item.id;
+          store.add(item);
+        }
       }
     }
 
@@ -535,7 +712,27 @@ export async function importAllData(data) {
       const store = tx.objectStore('weights');
       store.clear();
       for (const w of data.weights) {
-        store.put({ ...w });
+        if (w && typeof w === 'object' && w.date && w.weight !== undefined && w.weight !== null && !isNaN(Number(w.weight))) {
+          store.put({
+            date: w.date,
+            weight: Math.round(Number(w.weight) * 100) / 100,
+            updated_at: w.updated_at || new Date().toISOString()
+          });
+        }
+      }
+    }
+
+    if (data.water && Array.isArray(data.water)) {
+      const store = tx.objectStore('water');
+      store.clear();
+      for (const item of data.water) {
+        if (item && typeof item === 'object' && item.date && item.amount !== undefined && item.amount !== null && !isNaN(Number(item.amount))) {
+          store.put({
+            date: item.date,
+            amount: Math.round(Number(item.amount)),
+            updated_at: item.updated_at || new Date().toISOString()
+          });
+        }
       }
     }
   });
@@ -544,11 +741,12 @@ export async function importAllData(data) {
 export async function clearAllData() {
   const db = await openDB();
   await new Promise((resolve, reject) => {
-    const tx = db.transaction(['foods', 'meals', 'daily_targets', 'weights'], 'readwrite');
+    const tx = db.transaction(['foods', 'meals', 'daily_targets', 'weights', 'water'], 'readwrite');
     tx.objectStore('foods').clear();
     tx.objectStore('meals').clear();
     tx.objectStore('daily_targets').clear();
     tx.objectStore('weights').clear();
+    tx.objectStore('water').clear();
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

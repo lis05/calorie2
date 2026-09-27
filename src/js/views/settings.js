@@ -24,36 +24,36 @@ export async function renderSettings(container, onLanguageChanged) {
       <form id="targets-form">
         <div class="form-group">
           <label class="form-label">${t('target_calories')}</label>
-          <input type="number" id="set-target-cal" class="form-input" value="${targetCal}" required />
+          <input type="number" id="set-target-cal" class="form-input" step="any" min="0" value="${targetCal}" required />
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
           <div class="form-group">
             <label class="form-label">${t('target_protein')}</label>
-            <input type="number" id="set-target-pro" class="form-input" value="${targetPro}" required />
+            <input type="number" id="set-target-pro" class="form-input" step="any" min="0" value="${targetPro}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_carbs')}</label>
-            <input type="number" id="set-target-carb" class="form-input" value="${targetCarb}" required />
+            <input type="number" id="set-target-carb" class="form-input" step="any" min="0" value="${targetCarb}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_fats')}</label>
-            <input type="number" id="set-target-fat" class="form-input" value="${targetFat}" required />
+            <input type="number" id="set-target-fat" class="form-input" step="any" min="0" value="${targetFat}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_sat_fat')}</label>
-            <input type="number" id="set-target-sat-fat" class="form-input" value="${targetSatFat}" required />
+            <input type="number" id="set-target-sat-fat" class="form-input" step="any" min="0" value="${targetSatFat}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_fiber')}</label>
-            <input type="number" id="set-target-fib" class="form-input" value="${targetFib}" required />
+            <input type="number" id="set-target-fib" class="form-input" step="any" min="0" value="${targetFib}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_salt')}</label>
-            <input type="number" id="set-target-salt" class="form-input" step="0.0001" value="${targetSalt}" required />
+            <input type="number" id="set-target-salt" class="form-input" step="any" min="0" value="${targetSalt}" required />
           </div>
           <div class="form-group">
             <label class="form-label">${t('target_sugar')}</label>
-            <input type="number" id="set-target-sug" class="form-input" value="${targetSugar}" required />
+            <input type="number" id="set-target-sug" class="form-input" step="any" min="0" value="${targetSugar}" required />
           </div>
         </div>
         <button type="submit" class="btn-primary" style="padding:10px;">${t('save')}</button>
@@ -105,14 +105,14 @@ export async function renderSettings(container, onLanguageChanged) {
   const targetsForm = container.querySelector('#targets-form');
   targetsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const c = Math.max(0, parseFloat(container.querySelector('#set-target-cal').value) || 0);
-    const p = Math.max(0, parseFloat(container.querySelector('#set-target-pro').value) || 0);
-    const cb = Math.max(0, parseFloat(container.querySelector('#set-target-carb').value) || 0);
-    const f = Math.max(0, parseFloat(container.querySelector('#set-target-fat').value) || 0);
-    const sf = Math.max(0, parseFloat(container.querySelector('#set-target-sat-fat').value) || 0);
-    const fb = Math.max(0, parseFloat(container.querySelector('#set-target-fib').value) || 0);
-    const sl = Math.max(0, parseFloat(container.querySelector('#set-target-salt').value) || 0);
-    const sg = Math.max(0, parseFloat(container.querySelector('#set-target-sug').value) || 0);
+    const c = Math.max(0, parseFloat(String(container.querySelector('#set-target-cal').value).replace(',', '.')) || 0);
+    const p = Math.max(0, parseFloat(String(container.querySelector('#set-target-pro').value).replace(',', '.')) || 0);
+    const cb = Math.max(0, parseFloat(String(container.querySelector('#set-target-carb').value).replace(',', '.')) || 0);
+    const f = Math.max(0, parseFloat(String(container.querySelector('#set-target-fat').value).replace(',', '.')) || 0);
+    const sf = Math.max(0, parseFloat(String(container.querySelector('#set-target-sat-fat').value).replace(',', '.')) || 0);
+    const fb = Math.max(0, parseFloat(String(container.querySelector('#set-target-fib').value).replace(',', '.')) || 0);
+    const sl = Math.max(0, parseFloat(String(container.querySelector('#set-target-salt').value).replace(',', '.')) || 0);
+    const sg = Math.max(0, parseFloat(String(container.querySelector('#set-target-sug').value).replace(',', '.')) || 0);
 
     const todayStr = toLocalDateString(new Date());
     await saveDailyTargets({

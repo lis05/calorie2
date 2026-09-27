@@ -1,24 +1,26 @@
 import { t, getLanguage } from '../i18n.js';
-import { getMealsByDate, deleteMeal, updateMeal, getTargetsForDate, getFoodById, getAllFoods, toLocalDateString, getWeightByDate, saveWeight, deleteWeight } from '../db.js';
+import { getMealsByDate, deleteMeal, updateMeal, getTargetsForDate, toLocalDateString, getWeightByDate, saveWeight, deleteWeight, getWaterByDate, saveWater, deleteWater } from '../db.js';
 import { getFoodDisplayName } from '../defaultFoods.js';
 
 export async function renderDashboard(container, currentDate, onDateChange, onNavigateToLog) {
+  document.querySelectorAll('#app > #edit-meal-modal').forEach(el => el.remove());
+
   const currentLang = getLanguage();
   const dateStr = toLocalDateString(currentDate);
   const meals = await getMealsByDate(dateStr);
   const currentWeight = await getWeightByDate(dateStr);
-  const allFoods = await getAllFoods();
-  const foodsMap = new Map(allFoods.map(f => [f.id, f]));
+  const formattedWeight = currentWeight !== null && currentWeight !== undefined ? Number(currentWeight).toFixed(2) : null;
+  const currentWater = await getWaterByDate(dateStr);
 
   const targets = await getTargetsForDate(dateStr);
   const targetCal = targets.calories || 2000;
   const targetPro = targets.protein || 90;
   const targetCarb = targets.carbs || 220;
   const targetFat = targets.fats || 65;
-  const targetSatFat = targets.saturated_fats !== undefined ? targets.saturated_fats : 20;
-  const targetFib = targets.fiber || 30;
-  const targetSalt = targets.salt || 5;
-  const targetSugar = targets.sugar || 40;
+  const targetSatFat = targets.saturated_fats !== undefined ? targets.saturated_fats : (targets.sat_fat !== undefined ? targets.sat_fat : 20);
+  const targetFib = targets.fiber !== undefined ? targets.fiber : 30;
+  const targetSalt = targets.salt !== undefined ? targets.salt : 5;
+  const targetSugar = targets.sugar !== undefined ? targets.sugar : 40;
 
   // Calculate totals
   let totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0, totalSatFat = 0, totalFib = 0, totalSalt = 0, totalSugar = 0;
@@ -27,7 +29,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     totalPro += m.protein || 0;
     totalCarb += m.carbs || 0;
     totalFat += m.fats || 0;
-    totalSatFat += m.saturated_fats || m.sat_fat || 0;
+    totalSatFat += Number(m.saturated_fats !== undefined ? m.saturated_fats : (m.sat_fat || 0)) || 0;
     totalFib += m.fiber || 0;
     totalSalt += m.salt || 0;
     totalSugar += m.sugar || 0;
@@ -111,27 +113,53 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     </div>
 
     <!-- Daily Weight Widget -->
-    <div class="card" style="padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 1.4rem; line-height: 1;">⚖️</span>
-        <div>
-          <div style="font-size: 0.9rem; font-weight: 700;">${t('daily_weight')}</div>
-          <div id="weight-status-label" style="font-size: 0.75rem; color: var(--text-muted);">
-            ${currentWeight !== null ? `${currentWeight} ${t('unit_kg')}` : t('no_weight_logged')}
-          </div>
+    <div class="card" style="padding: 12px 14px; margin-bottom: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.25rem; line-height: 1;">⚖️</span>
+          <span style="font-size: 0.95rem; font-weight: 700;">${t('weight')}</span>
+        </div>
+        <div id="weight-status-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+          ${formattedWeight !== null ? `${formattedWeight} ${t('unit_kg')}` : t('no_weight_logged')}
         </div>
       </div>
-      <form id="daily-weight-form" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+      <form id="daily-weight-form" style="display: flex; align-items: center; gap: 8px; margin: 0;">
         <input type="number" id="daily-weight-input" class="form-input"
-          step="0.1" min="10" max="500" placeholder="--"
-          value="${currentWeight !== null ? currentWeight : ''}"
-          style="width: 75px; text-align: center; font-weight: 700; padding: 6px 4px; font-size: 0.95rem;" />
+          step="any" min="10" max="500" inputmode="decimal" placeholder="--"
+          value="${formattedWeight !== null ? formattedWeight : ''}"
+          style="flex: 1; min-width: 0; font-weight: 700; padding: 8px 12px; font-size: 0.95rem;" />
         <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">${t('unit_kg')}</span>
-        <button type="submit" id="save-weight-btn" class="btn-primary" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+        <button type="submit" id="save-weight-btn" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">
           ${t('save')}
         </button>
         ${currentWeight !== null ? `
-          <button type="button" id="delete-weight-btn" class="btn-delete-item" title="${t('clear')}" style="padding: 4px 6px;">✕</button>
+          <button type="button" id="delete-weight-btn" class="btn-delete-item" title="${t('clear')}" style="padding: 5px 8px;">✕</button>
+        ` : ''}
+      </form>
+    </div>
+
+    <!-- Daily Water Widget -->
+    <div class="card" style="padding: 12px 14px; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.25rem; line-height: 1;">💧</span>
+          <span style="font-size: 0.95rem; font-weight: 700;">${t('water')}</span>
+        </div>
+        <div id="water-status-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+          ${currentWater !== null ? `${currentWater} ${t('unit_ml')}` : t('no_water_logged')}
+        </div>
+      </div>
+      <form id="daily-water-form" style="display: flex; align-items: center; gap: 8px; margin: 0;">
+        <input type="number" id="daily-water-input" class="form-input"
+          step="1" min="0" max="20000" inputmode="numeric" placeholder="--"
+          value="${currentWater !== null ? currentWater : ''}"
+          style="flex: 1; min-width: 0; font-weight: 700; padding: 8px 12px; font-size: 0.95rem;" />
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">${t('unit_ml')}</span>
+        <button type="submit" id="save-water-btn" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">
+          ${t('save')}
+        </button>
+        ${currentWater !== null ? `
+          <button type="button" id="delete-water-btn" class="btn-delete-item" title="${t('clear')}" style="padding: 5px 8px;">✕</button>
         ` : ''}
       </form>
     </div>
@@ -154,7 +182,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
         <div class="food-card clickable" data-meal-id="${m.id}">
           <div class="food-card-header">
             <div style="flex:1;">
-              <h4 class="food-card-title">${getFoodDisplayName(foodsMap.get(m.food_id) || m.food_name, currentLang)}</h4>
+              <h4 class="food-card-title">${getFoodDisplayName(m, currentLang)}</h4>
               <div class="food-card-sub">
                 <span class="meal-badge">${t(m.meal_type || 'snack')}</span>
                 <span>${m.amount_g} ${t('grams')}</span>
@@ -214,7 +242,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
 
         <div style="text-align:center; margin: 10px 0 16px;">
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">${t('amount_g')}</div>
-          <input type="number" id="edit-grams-input" class="form-input" min="1" step="1"
+          <input type="number" id="edit-grams-input" class="form-input" min="0.1" step="any" inputmode="decimal"
             enterkeyhint="done"
             style="font-size:2rem; text-align:center; font-weight:800; width:160px; margin:0 auto; padding:8px;" />
         </div>
@@ -273,7 +301,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     weightForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       weightInput.blur();
-      const val = weightInput.value.trim();
+      const val = weightInput.value.trim().replace(',', '.');
       if (!val) {
         await deleteWeight(dateStr);
       } else {
@@ -296,6 +324,37 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     });
   }
 
+  const waterForm = container.querySelector('#daily-water-form');
+  const waterInput = container.querySelector('#daily-water-input');
+  const deleteWaterBtn = container.querySelector('#delete-water-btn');
+
+  if (waterForm && waterInput) {
+    waterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      waterInput.blur();
+      const val = waterInput.value.trim().replace(',', '.');
+      if (!val) {
+        await deleteWater(dateStr);
+      } else {
+        const num = parseFloat(val);
+        if (isNaN(num) || num <= 0) {
+          await deleteWater(dateStr);
+        } else {
+          await saveWater(dateStr, num);
+        }
+      }
+      renderDashboard(container, currentDate, onDateChange, onNavigateToLog);
+    });
+  }
+
+  if (deleteWaterBtn) {
+    deleteWaterBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await deleteWater(dateStr);
+      renderDashboard(container, currentDate, onDateChange, onNavigateToLog);
+    });
+  }
+
   const editModal = container.querySelector('#edit-meal-modal');
   const editTitle = container.querySelector('#edit-modal-title');
   const editGramsInput = container.querySelector('#edit-grams-input');
@@ -312,34 +371,39 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
   const epSug = container.querySelector('#edit-preview-sug');
 
   let activeEditingMeal = null;
-  let activeBaseFood = null;
+
+  function getMealPer100(meal) {
+    if (!meal) return null;
+    if (meal.per_100g) {
+      return meal.per_100g;
+    }
+    const origG = (meal.amount_g > 0) ? meal.amount_g : 100;
+    const mCal = Number(meal.calories) || 0;
+    const mPro = Number(meal.protein) || 0;
+    const mCarb = Number(meal.carbs) || 0;
+    const mFat = Number(meal.fats) || 0;
+    const mSatFat = Number(meal.saturated_fats !== undefined ? meal.saturated_fats : (meal.sat_fat || 0)) || 0;
+    const mFib = Number(meal.fiber) || 0;
+    const mSalt = Number(meal.salt) || 0;
+    const mSug = Number(meal.sugar) || 0;
+
+    return {
+      calories: (mCal / origG) * 100,
+      protein: (mPro / origG) * 100,
+      carbs: (mCarb / origG) * 100,
+      fats: (mFat / origG) * 100,
+      saturated_fats: (mSatFat / origG) * 100,
+      fiber: (mFib / origG) * 100,
+      salt: (mSalt / origG) * 100,
+      sugar: (mSug / origG) * 100
+    };
+  }
 
   function updateEditPreview() {
     if (!activeEditingMeal) return;
-    const g = Math.max(0, parseFloat(editGramsInput.value) || 0);
-    let per100 = activeBaseFood;
-    if (!per100) {
-      const origG = (activeEditingMeal.amount_g > 0) ? activeEditingMeal.amount_g : 100;
-      const mCal = Number(activeEditingMeal.calories) || 0;
-      const mPro = Number(activeEditingMeal.protein) || 0;
-      const mCarb = Number(activeEditingMeal.carbs) || 0;
-      const mFat = Number(activeEditingMeal.fats) || 0;
-      const mSatFat = Number(activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) || 0;
-      const mFib = Number(activeEditingMeal.fiber) || 0;
-      const mSalt = Number(activeEditingMeal.salt) || 0;
-      const mSug = Number(activeEditingMeal.sugar) || 0;
-
-      per100 = {
-        calories: (mCal / origG) * 100,
-        protein: (mPro / origG) * 100,
-        carbs: (mCarb / origG) * 100,
-        fats: (mFat / origG) * 100,
-        saturated_fats: (mSatFat / origG) * 100,
-        fiber: (mFib / origG) * 100,
-        salt: (mSalt / origG) * 100,
-        sugar: (mSug / origG) * 100
-      };
-    }
+    const g = Math.max(0, parseFloat(String(editGramsInput.value).replace(',', '.')) || 0);
+    const per100 = getMealPer100(activeEditingMeal);
+    if (!per100) return;
 
     const factor = g / 100;
     const sf = per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0);
@@ -353,7 +417,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     epSug.textContent = `${Math.round((Number(per100.sugar) || 0) * factor * 10) / 10}`;
   }
 
-  async function openEditModal(meal) {
+  function openEditModal(meal) {
     document.querySelectorAll('#app > #edit-meal-modal').forEach(el => {
       if (el !== editModal) el.remove();
     });
@@ -361,12 +425,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       document.getElementById('app').appendChild(editModal);
     }
     activeEditingMeal = meal;
-    if (meal.food_id) {
-      activeBaseFood = await getFoodById(meal.food_id);
-    } else {
-      activeBaseFood = null;
-    }
-    const displayName = getFoodDisplayName(activeBaseFood || meal.food_name, currentLang);
+    const displayName = getFoodDisplayName(meal, currentLang);
     editTitle.textContent = `${t('edit')}: ${displayName}`;
     editGramsInput.value = meal.amount_g;
     updateEditPreview();
@@ -384,7 +443,6 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
     }
     editModal.classList.remove('open');
     activeEditingMeal = null;
-    activeBaseFood = null;
   }
 
   editCloseBtn.addEventListener('click', closeEditModal);
@@ -402,36 +460,16 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       document.activeElement.blur();
     }
     if (!activeEditingMeal) return;
-    const g = Math.max(0, parseFloat(editGramsInput.value) || 0);
+    const g = Math.max(0, parseFloat(String(editGramsInput.value).replace(',', '.')) || 0);
     if (g <= 0) return;
 
-    let per100 = activeBaseFood;
-    if (!per100) {
-      const origG = (activeEditingMeal.amount_g > 0) ? activeEditingMeal.amount_g : 100;
-      const mCal = Number(activeEditingMeal.calories) || 0;
-      const mPro = Number(activeEditingMeal.protein) || 0;
-      const mCarb = Number(activeEditingMeal.carbs) || 0;
-      const mFat = Number(activeEditingMeal.fats) || 0;
-      const mSatFat = Number(activeEditingMeal.saturated_fats !== undefined ? activeEditingMeal.saturated_fats : (activeEditingMeal.sat_fat || 0)) || 0;
-      const mFib = Number(activeEditingMeal.fiber) || 0;
-      const mSalt = Number(activeEditingMeal.salt) || 0;
-      const mSug = Number(activeEditingMeal.sugar) || 0;
-
-      per100 = {
-        calories: (mCal / origG) * 100,
-        protein: (mPro / origG) * 100,
-        carbs: (mCarb / origG) * 100,
-        fats: (mFat / origG) * 100,
-        saturated_fats: (mSatFat / origG) * 100,
-        fiber: (mFib / origG) * 100,
-        salt: (mSalt / origG) * 100,
-        sugar: (mSug / origG) * 100
-      };
-    }
+    const per100 = getMealPer100(activeEditingMeal);
+    if (!per100) return;
 
     const factor = g / 100;
     const sf = per100.saturated_fats !== undefined ? per100.saturated_fats : (per100.sat_fat || 0);
     activeEditingMeal.amount_g = g;
+    activeEditingMeal.per_100g = per100;
     activeEditingMeal.calories = (Number(per100.calories) || 0) * factor;
     activeEditingMeal.protein = Math.round((Number(per100.protein) || 0) * factor * 10) / 10;
     activeEditingMeal.carbs = Math.round((Number(per100.carbs) || 0) * factor * 10) / 10;

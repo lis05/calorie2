@@ -1,8 +1,10 @@
 import { t, getLanguage } from '../i18n.js';
 import { getAllFoods, searchFoods, addMeal, toLocalDateString } from '../db.js';
-import { getFoodDisplayName } from '../defaultFoods.js';
+import { getFoodDisplayName, getFoodShortName } from '../defaultFoods.js';
 
 export async function renderLogMeal(container, currentDate, onMealSaved) {
+  document.querySelectorAll('#app > #grams-modal').forEach(el => el.remove());
+
   let allFoods = await getAllFoods();
   let selectedFood = null;
   const currentLang = getLanguage();
@@ -37,7 +39,7 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
         <div style="text-align:center; margin: 8px 0 14px;">
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">${t('amount_g')}</div>
-          <input type="number" id="grams-input" class="form-input" value="100" min="1" step="1"
+          <input type="number" id="grams-input" class="form-input" value="100" min="0.1" step="any" inputmode="decimal"
             enterkeyhint="done"
             style="font-size:2rem; text-align:center; font-weight:800; width:160px; margin:0 auto; padding:8px;" />
         </div>
@@ -116,7 +118,7 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
 
   function updatePreview() {
     if (!selectedFood) return;
-    const g = parseFloat(gramsInput.value) || 0;
+    const g = parseFloat(String(gramsInput.value).replace(',', '.')) || 0;
     const factor = g / 100;
     const sf = selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0);
     pCal.textContent = `${Math.round((selectedFood.calories || 0) * factor)} ${t('kcal')}`;
@@ -172,12 +174,16 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       document.activeElement.blur();
     }
     if (!selectedFood) return;
-    const g = Math.max(0, parseFloat(gramsInput.value) || 0);
+    const g = Math.max(0, parseFloat(String(gramsInput.value).replace(',', '.')) || 0);
     if (g <= 0) return;
 
     const factor = g / 100;
     const dateStr = toLocalDateString(currentDate);
     const foodName = getFoodDisplayName(selectedFood, currentLang);
+    const shortNameUk = selectedFood.short_name_uk || selectedFood.short_name || selectedFood.name_uk || selectedFood.name || foodName;
+    const shortNameEn = selectedFood.short_name_en || selectedFood.short_name || selectedFood.name_en || selectedFood.name || foodName;
+    const shortName = getFoodShortName(selectedFood, currentLang) || (currentLang === 'en' ? shortNameEn : shortNameUk) || foodName;
+    const longName = selectedFood.long_name || (currentLang === 'en' ? (selectedFood.name_en || foodName) : (selectedFood.name_uk || foodName));
     const sf = Number(selectedFood.saturated_fats !== undefined ? selectedFood.saturated_fats : (selectedFood.sat_fat || 0)) || 0;
     const cal = Number(selectedFood.calories) || 0;
     const pro = Number(selectedFood.protein) || 0;
@@ -192,6 +198,13 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       meal_type: currentMealType,
       food_id: selectedFood.id,
       food_name: foodName,
+      name: foodName,
+      name_uk: selectedFood.name_uk || selectedFood.name || foodName,
+      name_en: selectedFood.name_en || selectedFood.name || foodName,
+      long_name: longName,
+      short_name: shortName,
+      short_name_uk: shortNameUk,
+      short_name_en: shortNameEn,
       amount_g: g,
       calories: cal * factor,
       protein: Math.round(pro * factor * 10) / 10,
@@ -201,6 +214,16 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       fiber: Math.round(fib * factor * 10) / 10,
       salt: Math.round(salt * factor * 10000) / 10000,
       sugar: Math.round(sug * factor * 10) / 10,
+      per_100g: {
+        calories: cal,
+        protein: pro,
+        carbs: carb,
+        fats: fat,
+        saturated_fats: sf,
+        fiber: fib,
+        salt: salt,
+        sugar: sug
+      },
       created_at: new Date().toISOString()
     });
 
@@ -303,7 +326,9 @@ export async function renderLogMeal(container, currentDate, onMealSaved) {
       const suk = (f.short_name_uk || '').toLowerCase();
       const sen = (f.short_name_en || '').toLowerCase();
       const l = (f.long_name || '').toLowerCase();
-      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q);
+      const dEn = getFoodDisplayName(f, 'en').toLowerCase();
+      const dUk = getFoodDisplayName(f, 'uk').toLowerCase();
+      return n.includes(q) || nuk.includes(q) || nen.includes(q) || s.includes(q) || suk.includes(q) || sen.includes(q) || l.includes(q) || dEn.includes(q) || dUk.includes(q);
     }));
   });
 

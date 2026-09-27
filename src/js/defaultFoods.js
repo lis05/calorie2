@@ -3,90 +3,135 @@ export const defaultFoods = [
     name_uk: "Вівсяна каша на воді",
     name_en: "Oatmeal on water",
     name: "Вівсяна каша на воді",
+    short_name: "Вівсянка",
+    short_name_uk: "Вівсянка",
+    short_name_en: "Oatmeal",
     calories: 68, protein: 2.4, carbs: 12, fats: 1.4, saturated_fats: 0.2, fiber: 1.7, salt: 0.12, sugar: 0.3
   },
   {
     name_uk: "Гречана каша варена",
     name_en: "Boiled buckwheat",
     name: "Гречана каша варена",
+    short_name: "Гречка",
+    short_name_uk: "Гречка",
+    short_name_en: "Buckwheat",
     calories: 92, protein: 3.4, carbs: 20, fats: 0.6, saturated_fats: 0.1, fiber: 2.7, salt: 0.01, sugar: 0.2
   },
   {
     name_uk: "Білий рис варений",
     name_en: "Boiled white rice",
     name: "Білий рис варений",
+    short_name: "Рис",
+    short_name_uk: "Рис",
+    short_name_en: "Rice",
     calories: 130, protein: 2.7, carbs: 28.2, fats: 0.3, saturated_fats: 0.1, fiber: 0.4, salt: 0.01, sugar: 0.1
   },
   {
     name_uk: "Картопля варена",
     name_en: "Boiled potatoes",
     name: "Картопля варена",
+    short_name: "Картопля",
+    short_name_uk: "Картопля",
+    short_name_en: "Potatoes",
     calories: 87, protein: 1.9, carbs: 20, fats: 0.1, saturated_fats: 0.0, fiber: 1.8, salt: 0.02, sugar: 0.9
   },
   {
     name_uk: "Куряче філе відварене",
     name_en: "Boiled chicken breast",
     name: "Куряче філе відварене",
+    short_name: "Куряче філе",
+    short_name_uk: "Куряче філе",
+    short_name_en: "Chicken breast",
     calories: 165, protein: 31, carbs: 0, fats: 3.6, saturated_fats: 1.0, fiber: 0, salt: 0.19, sugar: 0
   },
   {
     name_uk: "Яйце куряче варене (1 шт ~50г)",
     name_en: "Boiled chicken egg (1 pc ~50g)",
     name: "Яйце куряче варене (1 шт ~50г)",
+    short_name: "Яйце",
+    short_name_uk: "Яйце",
+    short_name_en: "Egg",
     calories: 143, protein: 12.6, carbs: 0.7, fats: 9.5, saturated_fats: 3.1, fiber: 0, salt: 0.31, sugar: 0.4
   },
   {
     name_uk: "Сир кисломолочний 5%",
     name_en: "Cottage cheese 5%",
     name: "Сир кисломолочний 5%",
+    short_name: "Творог 5%",
+    short_name_uk: "Творог 5%",
+    short_name_en: "Cottage cheese 5%",
     calories: 121, protein: 17, carbs: 3, fats: 5, saturated_fats: 3.1, fiber: 0, salt: 0.10, sugar: 3
   },
   {
     name_uk: "Банан свіжий",
     name_en: "Fresh banana",
     name: "Банан свіжий",
+    short_name: "Банан",
+    short_name_uk: "Банан",
+    short_name_en: "Banana",
     calories: 89, protein: 1.1, carbs: 23, fats: 0.3, saturated_fats: 0.1, fiber: 2.6, salt: 0.01, sugar: 12
   },
   {
     name_uk: "Яблуко свіже",
     name_en: "Fresh apple",
     name: "Яблуко свіже",
+    short_name: "Яблуко",
+    short_name_uk: "Яблуко",
+    short_name_en: "Apple",
     calories: 52, protein: 0.3, carbs: 14, fats: 0.2, saturated_fats: 0.0, fiber: 2.4, salt: 0.01, sugar: 10
   },
   {
     name_uk: "Огірок свіжий",
     name_en: "Fresh cucumber",
     name: "Огірок свіжий",
+    short_name: "Огірок",
+    short_name_uk: "Огірок",
+    short_name_en: "Cucumber",
     calories: 15, protein: 0.7, carbs: 3.6, fats: 0.1, saturated_fats: 0.0, fiber: 0.5, salt: 0.01, sugar: 1.7
   },
   {
     name_uk: "Помідор свіжий",
     name_en: "Fresh tomato",
     name: "Помідор свіжий",
+    short_name: "Помідор",
+    short_name_uk: "Помідор",
+    short_name_en: "Tomato",
     calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, saturated_fats: 0.0, fiber: 1.2, salt: 0.02, sugar: 2.6
   },
   {
     name_uk: "Хліб житній",
     name_en: "Rye bread",
     name: "Хліб житній",
+    short_name: "Хліб житній",
+    short_name_uk: "Хліб житній",
+    short_name_en: "Rye bread",
     calories: 259, protein: 8.5, carbs: 48, fats: 3.3, saturated_fats: 0.4, fiber: 5.8, salt: 1.25, sugar: 1.5
   },
   {
     name_uk: "Олія соняшникова / оливкова",
     name_en: "Sunflower / olive oil",
     name: "Олія соняшникова / оливкова",
+    short_name: "Олія",
+    short_name_uk: "Олія",
+    short_name_en: "Oil",
     calories: 884, protein: 0, carbs: 0, fats: 100, saturated_fats: 11.0, fiber: 0, salt: 0, sugar: 0
   },
   {
     name_uk: "Вершкове масло 82%",
     name_en: "Butter 82%",
     name: "Вершкове масло 82%",
+    short_name: "Масло 82%",
+    short_name_uk: "Масло 82%",
+    short_name_en: "Butter 82%",
     calories: 748, protein: 0.8, carbs: 0.8, fats: 82.5, saturated_fats: 51.4, fiber: 0, salt: 0.03, sugar: 0.8
   },
   {
     name_uk: "Волоський горіх",
     name_en: "Walnut",
     name: "Волоський горіх",
+    short_name: "Волоський горіх",
+    short_name_uk: "Волоський горіх",
+    short_name_en: "Walnut",
     calories: 654, protein: 15.2, carbs: 13.7, fats: 65.2, saturated_fats: 6.1, fiber: 6.7, salt: 0.01, sugar: 2.6
   }
 ];
@@ -121,9 +166,18 @@ export function getFoodDisplayName(food, lang = 'uk') {
     return reverseTranslations[food] || food;
   }
   if (lang === 'en') {
-    return food.short_name_en || food.short_name || food.name_en || foodTranslations[food.name_uk] || foodTranslations[food.name] || food.name || '';
+    return food.name_en || food.food_name_en || foodTranslations[food.name_uk] || foodTranslations[food.food_name_uk] || foodTranslations[food.name] || foodTranslations[food.food_name] || food.long_name || food.food_name || food.name || food.short_name_en || food.short_name || '';
   }
-  return food.short_name_uk || food.short_name || food.name_uk || reverseTranslations[food.name_en] || reverseTranslations[food.name] || food.name || '';
+  return food.long_name || food.name_uk || food.food_name_uk || reverseTranslations[food.name_en] || reverseTranslations[food.food_name_en] || reverseTranslations[food.name] || reverseTranslations[food.food_name] || food.food_name || food.name || food.short_name_uk || food.short_name || '';
+}
+
+export function getFoodShortName(food, lang = 'uk') {
+  if (!food) return '';
+  if (typeof food === 'string') return food;
+  if (lang === 'en') {
+    return food.short_name_en || food.short_name || food.name_en || food.long_name || food.name || '';
+  }
+  return food.short_name_uk || food.short_name || food.name_uk || food.long_name || food.name || '';
 }
 
 export function getFoodFullName(food, lang = 'uk') {
@@ -132,5 +186,5 @@ export function getFoodFullName(food, lang = 'uk') {
   if (lang === 'en') {
     return food.name_en || food.long_name || food.name || '';
   }
-  return food.name_uk || food.long_name || food.name || '';
+  return food.long_name || food.name_uk || food.name || '';
 }
