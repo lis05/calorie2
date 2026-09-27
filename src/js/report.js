@@ -120,6 +120,98 @@ function downloadFile(content, fileName, mimeType) {
   return downloadBlob(blob, fileName);
 }
 
+export function openFile(blobUrl, fileName, mimeType, blob) {
+  if (mimeType === 'application/pdf') {
+    const win = window.open(blobUrl, '_blank');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      if (navigator.canShare && blob) {
+        try {
+          const file = new File([blob], fileName, { type: mimeType });
+          if (navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], title: fileName });
+            return;
+          }
+        } catch (e) {}
+      }
+      window.location.assign(blobUrl);
+    }
+  } else {
+    if (navigator.canShare && blob) {
+      try {
+        const file = new File([blob], fileName, { type: mimeType });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: fileName });
+          return;
+        }
+      } catch (e) {}
+    }
+    window.open(blobUrl, '_blank');
+  }
+}
+
+export function showDownloadNotification(fileName, blobUrl, mimeType, blob) {
+  document.querySelectorAll('#download-file-notification').forEach(el => el.remove());
+
+  const notif = document.createElement('div');
+  notif.id = 'download-file-notification';
+  notif.style.cssText = `
+    position: fixed;
+    bottom: calc(var(--nav-height, 68px) + env(safe-area-inset-bottom, 0px) + 14px);
+    left: 14px;
+    right: 14px;
+    max-width: 440px;
+    margin: 0 auto;
+    background: var(--surface-color, #1e293b);
+    border: 1px solid var(--accent-secondary, #10b981);
+    color: var(--text-primary, #f8fafc);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    z-index: 10000;
+  `;
+
+  notif.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; overflow:hidden; flex:1;">
+      <span style="font-size:1.4rem;">📥</span>
+      <div style="overflow:hidden;">
+        <div style="font-size:0.85rem; font-weight:700; color:var(--accent-secondary, #10b981);">
+          ${t('file_downloaded')}
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted, #94a3b8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${fileName}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button type="button" id="notif-btn-open" class="btn-primary" style="padding:6px 14px; font-size:0.82rem; font-weight:700; width:auto; border-radius:8px;">
+        👁️ ${t('open')}
+      </button>
+      <button type="button" id="notif-btn-close" style="background:none; border:none; color:var(--text-muted); font-size:1.15rem; padding:4px 6px; cursor:pointer;">
+        ✕
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(notif);
+
+  const openBtn = notif.querySelector('#notif-btn-open');
+  const closeBtn = notif.querySelector('#notif-btn-close');
+
+  openBtn.addEventListener('click', () => {
+    openFile(blobUrl, fileName, mimeType, blob);
+  });
+
+  closeBtn.addEventListener('click', () => notif.remove());
+
+  setTimeout(() => {
+    if (notif.parentElement) notif.remove();
+  }, 25000);
+}
+
 export function openReportDialog() {
   document.querySelectorAll('#report-dialog-modal').forEach(el => el.remove());
 
@@ -254,8 +346,9 @@ export function openReportDialog() {
         return;
       }
 
-      // Try automatic download
+      // Try automatic download and show in-app notification banner
       const blobUrl = downloadBlob(report.blob, report.fileName);
+      showDownloadNotification(report.fileName, blobUrl, report.mimeType, report.blob);
 
       // Check if Web Share API with files is supported
       let canShare = false;
@@ -269,28 +362,38 @@ export function openReportDialog() {
         canShare = false;
       }
 
-      // Transform action container to show success & provide direct synchronous user tap
-      // On mobile browsers (Chrome / Safari), direct synchronous tap triggers the native download dialog
+      // Transform action container to show success & provide direct buttons for Open, Download, and Share
       if (actionsDiv) {
         actionsDiv.innerHTML = `
           <div style="display:flex; flex-direction:column; gap:10px; width:100%; margin-top:4px;">
             <div style="color:var(--accent-secondary, #10b981); font-size:0.95rem; font-weight:700; text-align:center;">
               ✓ ${t('report_ready')}
             </div>
-            <button type="button" id="btn-manual-download" class="btn-primary" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 700; gap: 8px; justify-content: center;">
+
+            <button type="button" id="btn-open-report-direct" class="btn-primary" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 700; gap: 8px; justify-content: center; background: #0284c7; border-color: #0284c7;">
+              👁️ ${t('open_report')}
+            </button>
+
+            <button type="button" id="btn-manual-download" class="btn-secondary" style="padding: 11px 16px; font-size: 0.92rem; font-weight: 600; gap: 8px; justify-content: center;">
               📥 ${t('download')} (${report.fileName})
             </button>
+
             ${canShare ? `
               <button type="button" id="btn-share-report" class="btn-secondary" style="padding: 10px 16px; font-size: 0.9rem; font-weight: 600; gap: 8px; justify-content: center;">
-                📤 ${t('share')}
+                📤 ${t('open_with')}
               </button>
             ` : ''}
           </div>
         `;
 
+        const openBtn = actionsDiv.querySelector('#btn-open-report-direct');
+        openBtn.addEventListener('click', () => {
+          openFile(blobUrl, report.fileName, report.mimeType, report.blob);
+        });
+
         const manualBtn = actionsDiv.querySelector('#btn-manual-download');
         manualBtn.addEventListener('click', () => {
-          // Direct synchronous user activation!
+          // Direct synchronous user activation
           const a = document.createElement('a');
           a.style.display = 'none';
           a.href = blobUrl;
@@ -299,6 +402,7 @@ export function openReportDialog() {
           document.body.appendChild(a);
           a.click();
           setTimeout(() => a.remove(), 1000);
+          showDownloadNotification(report.fileName, blobUrl, report.mimeType, report.blob);
         });
 
         if (canShare && shareFile) {
@@ -311,7 +415,7 @@ export function openReportDialog() {
               });
             } catch (err) {
               if (err.name !== 'AbortError') {
-                manualBtn.click();
+                openFile(blobUrl, report.fileName, report.mimeType, report.blob);
               }
             }
           });

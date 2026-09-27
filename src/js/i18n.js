@@ -140,7 +140,11 @@ const translations = {
     download: "Завантажити",
     share: "Поділитися / Зберегти",
     report_ready: "Звіт готовий!",
-    generating_report: "Формування звіту..."
+    generating_report: "Формування звіту...",
+    open: "Відкрити",
+    open_report: "Відкрити звіт",
+    file_downloaded: "Файл збережено в Завантаження!",
+    open_with: "Відкрити через... / Поділитися"
   },
   en: {
     app_title: "Calorie",
@@ -283,7 +287,11 @@ const translations = {
     download: "Download",
     share: "Share / Save",
     report_ready: "Report Ready!",
-    generating_report: "Generating report..."
+    generating_report: "Generating report...",
+    open: "Open",
+    open_report: "Open Report",
+    file_downloaded: "File saved to Downloads!",
+    open_with: "Open with... / Share"
   }
 };
 
