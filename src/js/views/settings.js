@@ -1,5 +1,6 @@
 import { t, setLanguage, getLanguage } from '../i18n.js';
 import { getTargetsForDate, saveDailyTargets, exportAllData, importAllData, clearAllData, toLocalDateString } from '../db.js';
+import { performDailyBackup, getAllBackups, downloadAllBackupsArchive } from '../backup.js';
 import { APP_VERSION } from '../version.js';
 
 export async function renderSettings(container, onLanguageChanged) {
@@ -15,6 +16,9 @@ export async function renderSettings(container, onLanguageChanged) {
   const targetSugar = targets.sugar || 40;
   const currentLang = getLanguage();
   const currentTheme = localStorage.getItem('calorie2_theme') || 'dark';
+
+  await performDailyBackup().catch(() => {});
+  const backups = await getAllBackups();
 
   container.innerHTML = `
     <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:14px;">${t('settings')}</h2>
@@ -84,6 +88,14 @@ export async function renderSettings(container, onLanguageChanged) {
         <button id="btn-force-update" class="btn-secondary" style="border-color:var(--accent-secondary); color:var(--accent-secondary); font-weight:600;">
           🔄 ${t('check_updates')}
         </button>
+        <button id="btn-download-all-backups" class="btn-secondary" style="border-color:var(--accent-primary); color:var(--accent-primary); font-weight:700;">
+          📦 ${t('download_all_backups')} ${backups.length > 0 ? `(${backups.length})` : ''}
+        </button>
+        ${backups.length > 0 ? `
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:-4px; margin-bottom:2px; line-height:1.4;">
+            ${t('backups_preserved')}: ${backups.map(b => b.date).join(', ')}
+          </div>
+        ` : ''}
         <button id="btn-export" class="btn-secondary">📥 ${t('export_data')}</button>
         <button id="btn-import-trigger" class="btn-secondary">📤 ${t('import_data')}</button>
         <input type="file" id="file-import-input" accept=".json" style="display:none;" />
@@ -214,6 +226,22 @@ export async function renderSettings(container, onLanguageChanged) {
         statusBadge.remove();
       }
     })();
+  }
+
+  // Download All Backups Archive (7 days)
+  const downloadBackupsBtn = container.querySelector('#btn-download-all-backups');
+  if (downloadBackupsBtn) {
+    downloadBackupsBtn.addEventListener('click', async () => {
+      try {
+        downloadBackupsBtn.disabled = true;
+        const res = await downloadAllBackupsArchive();
+        alert(`${t('backups_downloaded')} (${res.count})`);
+      } catch (err) {
+        alert(err.message || t('no_backups_available'));
+      } finally {
+        downloadBackupsBtn.disabled = false;
+      }
+    });
   }
 
   // Export JSON

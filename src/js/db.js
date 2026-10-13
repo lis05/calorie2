@@ -647,6 +647,19 @@ export async function exportAllData() {
 }
 
 export async function importAllData(data) {
+  if (!data || typeof data !== 'object') return;
+
+  // If data is an archive containing a backups array, use the latest backup
+  if (data.backups && Array.isArray(data.backups) && data.backups.length > 0) {
+    const sorted = [...data.backups].sort((a, b) => {
+      const da = a.date || a.timestamp || '';
+      const db = b.date || b.timestamp || '';
+      return db.localeCompare(da);
+    });
+    const latest = sorted[0];
+    data = (latest && latest.data) ? latest.data : latest;
+  }
+
   const db = await openDB();
   const storesToUse = [];
   if (data.foods && Array.isArray(data.foods)) storesToUse.push('foods');

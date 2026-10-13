@@ -1,5 +1,6 @@
 import { initI18n, t, getLanguage } from './i18n.js';
 import { openDB } from './db.js';
+import { performDailyBackup } from './backup.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderAnalytics } from './views/analytics.js';
 import { renderLogMeal } from './views/logMeal.js';
@@ -27,6 +28,9 @@ async function init() {
 
   // Initialize DB
   await openDB();
+
+  // Perform automatic daily backup (keeps last 7 days)
+  performDailyBackup().catch(err => console.error('Daily backup error:', err));
 
   // Register service worker if available
   if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
