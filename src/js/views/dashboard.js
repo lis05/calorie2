@@ -117,9 +117,9 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.25rem; line-height: 1;">⚖️</span>
-          <span style="font-size: 0.95rem; font-weight: 700;">${t('weight')}</span>
+          <span style="font-size: 0.95rem; font-weight: normal; color: var(--text-main);">${t('weight')}</span>
         </div>
-        <div id="weight-status-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+        <div id="weight-status-label" style="font-size: 0.85rem; font-weight: normal; color: ${formattedWeight !== null ? 'var(--text-main)' : 'var(--text-muted)'};">
           ${formattedWeight !== null ? `${formattedWeight} ${t('unit_kg')}` : t('no_weight_logged')}
         </div>
       </div>
@@ -127,8 +127,8 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
         <input type="number" id="daily-weight-input" class="form-input"
           step="any" min="10" max="500" inputmode="decimal" placeholder="--"
           value="${formattedWeight !== null ? formattedWeight : ''}"
-          style="flex: 1; min-width: 0; font-weight: 700; padding: 8px 12px; font-size: 0.95rem;" />
-        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">${t('unit_kg')}</span>
+          style="flex: 1; min-width: 0; font-weight: normal; color: var(--text-main); padding: 8px 12px; font-size: 0.95rem;" />
+        <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-main);">${t('unit_kg')}</span>
         <button type="submit" id="save-weight-btn" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">
           ${t('save')}
         </button>
@@ -143,20 +143,20 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.25rem; line-height: 1;">💧</span>
-          <span style="font-size: 0.95rem; font-weight: 700;">${t('water')}</span>
+          <span style="font-size: 0.95rem; font-weight: normal; color: var(--text-main);">${t('water')}</span>
         </div>
-        <div id="water-status-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+        <div id="water-status-label" style="font-size: 0.85rem; font-weight: normal; color: ${currentWater !== null ? 'var(--text-main)' : 'var(--text-muted)'};">
           ${currentWater !== null ? `${currentWater} ${t('unit_ml')}` : t('no_water_logged')}
         </div>
       </div>
       <form id="daily-water-form" style="display: flex; align-items: center; gap: 8px; margin: 0;">
         <input type="number" id="daily-water-input" class="form-input"
-          step="1" min="0" max="20000" inputmode="numeric" placeholder="--"
-          value="${currentWater !== null ? currentWater : ''}"
-          style="flex: 1; min-width: 0; font-weight: 700; padding: 8px 12px; font-size: 0.95rem;" />
-        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">${t('unit_ml')}</span>
+          step="any" min="0" max="20000" inputmode="numeric" placeholder="+ ${t('unit_ml')}"
+          value=""
+          style="flex: 1; min-width: 0; font-weight: normal; color: var(--text-main); padding: 8px 12px; font-size: 0.95rem;" />
+        <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-main);">${t('unit_ml')}</span>
         <button type="submit" id="save-water-btn" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">
-          ${t('save')}
+          ＋ ${t('add')}
         </button>
         ${currentWater !== null ? `
           <button type="button" id="delete-water-btn" class="btn-delete-item" title="${t('clear')}" style="padding: 5px 8px;">✕</button>
@@ -185,7 +185,7 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
               <h4 class="food-card-title">${getFoodDisplayName(m, currentLang)}</h4>
               <div class="food-card-sub">
                 <span class="meal-badge">${t(m.meal_type || 'snack')}</span>
-                <span>${m.amount_g} ${t('grams')}</span>
+                <span style="color:var(--text-main); font-weight:normal;">${m.amount_g} ${t('grams')}</span>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -333,14 +333,19 @@ export async function renderDashboard(container, currentDate, onDateChange, onNa
       e.preventDefault();
       waterInput.blur();
       const val = waterInput.value.trim().replace(',', '.');
-      if (!val) {
+      if (!val) return;
+      const num = parseFloat(val);
+      if (isNaN(num)) return;
+
+      if (num === 0) {
         await deleteWater(dateStr);
       } else {
-        const num = parseFloat(val);
-        if (isNaN(num) || num <= 0) {
+        const current = (currentWater !== null && !isNaN(Number(currentWater))) ? Number(currentWater) : 0;
+        const newTotal = Math.max(0, Math.round(current + num));
+        if (newTotal === 0) {
           await deleteWater(dateStr);
         } else {
-          await saveWater(dateStr, num);
+          await saveWater(dateStr, newTotal);
         }
       }
       renderDashboard(container, currentDate, onDateChange, onNavigateToLog);

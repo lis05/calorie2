@@ -182,4 +182,8 @@ function updateNavLabels() {
   if (setLabel) setLabel.textContent = t('settings_nav');
 }
 
-window.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

@@ -222,10 +222,18 @@ export async function renderSettings(container, onLanguageChanged) {
     const jsonBlob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(jsonBlob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     a.download = `calorie2_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      a.remove();
+    }, 1000);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 60000);
   });
 
   // Import JSON

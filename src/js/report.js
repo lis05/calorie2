@@ -629,7 +629,7 @@ async function generatePdfReport(dates, mealsByDate, weightMap, targetsMap, lang
       ctx.fillText(t(mt), colName, curY);
 
       ctx.textAlign = 'right';
-      ctx.font = 'bold 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
       ctx.fillStyle = '#111827';
       ctx.fillText(t('weight'), colWeight, curY);
       ctx.fillText(t('kcal'), colKcal, curY);
@@ -690,7 +690,7 @@ async function generatePdfReport(dates, mealsByDate, weightMap, targetsMap, lang
       const subFibDisplay = Math.round(subFib * 100) / 100;
       const subSaltDisplay = subSalt > 0 ? `${Math.round(subSalt * 100) / 100}` : '';
 
-      ctx.font = 'bold 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.font = 'italic 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
       ctx.fillStyle = '#7c3aed';
       ctx.textAlign = 'right';
 
@@ -719,12 +719,12 @@ async function generatePdfReport(dates, mealsByDate, weightMap, targetsMap, lang
 
     // Summary Header
     ctx.textAlign = 'left';
-    ctx.font = 'bold italic 22px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.font = 'italic 22px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
     ctx.fillStyle = '#111827';
     ctx.fillText(t('for_day'), colName, curY);
 
     ctx.textAlign = 'right';
-    ctx.font = 'bold 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.font = '20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
     ctx.fillText(t('kcal'), colKcal, curY);
     ctx.fillText(t('protein_short'), colPro, curY);
     ctx.fillText(t('fats_short'), colFat, curY);
@@ -734,8 +734,8 @@ async function generatePdfReport(dates, mealsByDate, weightMap, targetsMap, lang
 
     curY += 28;
 
-    // Actual Totals (Bold Black)
-    ctx.font = 'bold 21px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    // Actual Totals (Italic Black)
+    ctx.font = 'italic 21px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
     ctx.fillStyle = '#111827';
     ctx.textAlign = 'right';
     ctx.fillText(`${dayCalDisplay}`, colKcal, curY);
@@ -1184,11 +1184,11 @@ function generateExcelXmlSpreadsheet(dates, mealsByDate, weightMap, targetsMap, 
       <Font ss:FontName="Segoe UI" ss:Size="11" ss:Bold="1" ss:Color="#C2410C"/>
     </Style>
     <Style ss:ID="ColHeaderLeft">
-      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Bold="1" ss:Color="#111827"/>
+      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Color="#111827"/>
       <Alignment ss:Horizontal="Left"/>
     </Style>
     <Style ss:ID="ColHeader">
-      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Bold="1" ss:Color="#111827"/>
+      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Color="#111827"/>
       <Alignment ss:Horizontal="Right"/>
     </Style>
     <Style ss:ID="ItemLeft">
@@ -1198,15 +1198,15 @@ function generateExcelXmlSpreadsheet(dates, mealsByDate, weightMap, targetsMap, 
       <Alignment ss:Horizontal="Right"/>
     </Style>
     <Style ss:ID="Subtotal">
-      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Bold="1" ss:Color="#7C3AED"/>
+      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Italic="1" ss:Color="#7C3AED"/>
       <Alignment ss:Horizontal="Right"/>
     </Style>
     <Style ss:ID="DayTotalHeader">
-      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Bold="1" ss:Italic="1" ss:Color="#111827"/>
+      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Italic="1" ss:Color="#111827"/>
       <Alignment ss:Horizontal="Left"/>
     </Style>
     <Style ss:ID="DayTotal">
-      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Bold="1" ss:Color="#111827"/>
+      <Font ss:FontName="Segoe UI" ss:Size="10" ss:Italic="1" ss:Color="#111827"/>
       <Alignment ss:Horizontal="Right"/>
     </Style>
     <Style ss:ID="DayTarget">

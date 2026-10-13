@@ -461,7 +461,7 @@ async function loadAndDisplayWeightChart(container) {
   statsSummary.innerHTML = `
     <div class="stat-box" style="text-align:center; padding:10px 4px;">
       <div class="stat-label" style="font-size:0.72rem;">${t('first_logged')}</div>
-      <div class="stat-val" style="font-size:1.05rem; color:var(--text-secondary);">${firstW} <span style="font-size:0.75rem;">${unit}</span></div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--text-main);">${firstW} <span style="font-size:0.75rem;">${unit}</span></div>
     </div>
     <div class="stat-box" style="text-align:center; padding:10px 4px;">
       <div class="stat-label" style="font-size:0.72rem;">${t('latest_logged')}</div>
@@ -654,7 +654,7 @@ async function loadAndDisplayWaterChart(container) {
   statsSummary.innerHTML = `
     <div class="stat-box" style="text-align:center; padding:10px 4px;">
       <div class="stat-label" style="font-size:0.72rem;">${t('first_logged')}</div>
-      <div class="stat-val" style="font-size:1.05rem; color:var(--text-secondary);">${firstA} <span style="font-size:0.75rem;">${unit}</span></div>
+      <div class="stat-val" style="font-size:1.05rem; color:var(--text-main);">${firstA} <span style="font-size:0.75rem;">${unit}</span></div>
     </div>
     <div class="stat-box" style="text-align:center; padding:10px 4px;">
       <div class="stat-label" style="font-size:0.72rem;">${t('latest_logged')}</div>
